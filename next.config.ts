@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Allow sharp to work server-side
-  serverExternalPackages: ["sharp"],
+  serverExternalPackages: ["sharp", "@tensorflow/tfjs", "@tensorflow-models/coco-ssd"],
 };
 
 export default nextConfig;

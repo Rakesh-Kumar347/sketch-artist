@@ -3,6 +3,8 @@ import { uploadToCloudinary } from "@/lib/cloudinary";
 import { analyzeComplexity, calculatePrice } from "@/lib/complexity";
 import type { SizeKey, SubjectKey } from "@/lib/complexity";
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();

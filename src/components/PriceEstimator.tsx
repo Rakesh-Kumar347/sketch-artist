@@ -2,26 +2,42 @@
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
-import { Upload, Loader2, Sparkles, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
+import {
+  Upload, Loader2, AlertCircle, CheckCircle2,
+  ChevronDown, ScanSearch, RefreshCw, Crop,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import ImageCropper from "@/components/ImageCropper";
 import type { ComplexityResult, PriceBreakdown } from "@/lib/complexity";
+import type { DetectionResult } from "@/lib/objectDetection";
 
 const SIZES = ["A5", "A4", "A3", "A2"] as const;
 const SUBJECTS = ["1", "2", "3", "4+"] as const;
 
+type Stage = "upload" | "crop" | "result";
+
 interface AnalysisResult {
   complexity: ComplexityResult;
   pricing: { basePrice: number; finalPrice: number; breakdown: PriceBreakdown };
+  detection: DetectionResult;
   currency: string;
 }
 
 const complexityColors: Record<string, string> = {
-  simple: "bg-green-100 text-green-800 border-green-200",
-  moderate: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  detailed: "bg-orange-100 text-orange-800 border-orange-200",
-  complex: "bg-red-100 text-red-800 border-red-200",
+  simple:   "bg-green-100  text-green-800  border-green-200  dark:bg-green-900/30  dark:text-green-400  dark:border-green-800",
+  moderate: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  detailed: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+  complex:  "bg-red-100    text-red-800    border-red-200    dark:bg-red-900/30    dark:text-red-400    dark:border-red-800",
 };
+
+const optionBtn = (active: boolean) =>
+  cn(
+    "py-2 text-sm rounded-md border font-medium transition-all",
+    active
+      ? "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)]"
+      : "bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]"
+  );
 
 interface Props {
   onProceed?: (data: {
@@ -35,29 +51,35 @@ interface Props {
 }
 
 export default function PriceEstimator({ onProceed, showProceedButton = false }: Props) {
+  // Raw uploaded file + its object URL (for the cropper)
+  const [rawImage, setRawImage] = useState<File | null>(null);
+  const [rawPreviewUrl, setRawPreviewUrl] = useState<string | null>(null);
+
+  // Final file after crop (what gets analyzed)
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+
+  const [stage, setStage] = useState<Stage>("upload");
   const [size, setSize] = useState<"A5" | "A4" | "A3" | "A2">("A4");
-  const [subjects, setSubjects] = useState<"1" | "2" | "3" | "4+">("1");
+  const [subjectOverride, setSubjectOverride] = useState<"1" | "2" | "3" | "4+" | null>(null);
   const [isRush, setIsRush] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  const effectiveSubject = subjectOverride ?? result?.detection.subjectKey ?? "1";
+
+  // Step 1: User picks a file → go to crop stage
   const handleFile = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File too large. Max 10MB.");
-      return;
-    }
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
+    if (!file.type.startsWith("image/")) { setError("Please upload an image file."); return; }
+    if (file.size > 10 * 1024 * 1024) { setError("File too large. Max 10MB."); return; }
+    setRawImage(file);
+    setRawPreviewUrl(URL.createObjectURL(file));
     setResult(null);
+    setSubjectOverride(null);
     setError(null);
+    setStage("crop");
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -65,24 +87,29 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const analyze = async () => {
+  // Step 2: Cropper confirms → save cropped file, go to result stage
+  const handleCropConfirm = (croppedFile: File, croppedPreviewUrl: string) => {
+    setImage(croppedFile);
+    setPreview(croppedPreviewUrl);
+    setStage("result");
+  };
+
+  // Step 3: Analyze the cropped image
+  const analyze = async (overrideSubject?: "1" | "2" | "3" | "4+") => {
     if (!image) return;
     setLoading(true);
     setError(null);
-    setResult(null);
-
     try {
       const formData = new FormData();
       formData.append("image", image);
       formData.append("size", size);
-      formData.append("subjects", subjects);
       formData.append("rush", String(isRush));
-
+      if (overrideSubject) formData.append("subjectOverride", overrideSubject);
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || "Analysis failed");
       setResult(data);
     } catch (err) {
@@ -92,114 +119,120 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Upload area */}
-      <div
-        className={cn(
-          "border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer",
-          dragOver
-            ? "border-stone-500 bg-stone-50"
-            : "border-stone-300 hover:border-stone-400 bg-white",
-          preview ? "py-4" : "py-12"
-        )}
-        onDrop={handleDrop}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onClick={() => document.getElementById("file-input")?.click()}
-      >
-        <input
-          id="file-input"
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-        />
+  const handleSubjectOverride = (s: "1" | "2" | "3" | "4+") => {
+    setSubjectOverride(s);
+    analyze(s);
+  };
 
-        {preview ? (
-          <div className="relative">
-            <Image
-              src={preview}
-              alt="Preview"
-              width={400}
-              height={300}
-              className="max-h-64 mx-auto object-contain rounded-lg"
-            />
-            <p className="text-xs text-stone-500 mt-2">Click to change image</p>
+  const resetAll = () => {
+    setRawImage(null);
+    setRawPreviewUrl(null);
+    setImage(null);
+    setPreview(null);
+    setResult(null);
+    setError(null);
+    setSubjectOverride(null);
+    setStage("upload");
+  };
+
+  // ─── STAGE: UPLOAD ───────────────────────────────────────────────
+  if (stage === "upload") {
+    return (
+      <div className="space-y-5">
+        <div
+          className={cn(
+            "border-2 border-dashed rounded-xl text-center transition-colors cursor-pointer",
+            dragOver
+              ? "border-[var(--text-muted)] bg-[var(--bg-subtle)]"
+              : "border-[var(--border)] hover:border-[var(--text-muted)] bg-[var(--bg-card)]",
+            "p-12"
+          )}
+          onDrop={handleDrop}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onClick={() => document.getElementById("file-input-up")?.click()}
+        >
+          <input id="file-input-up" type="file" accept="image/*" className="hidden"
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          <Upload className="w-10 h-10 text-[var(--text-muted)] mx-auto mb-3" />
+          <p className="text-[var(--text)] font-medium">Drop your reference image here</p>
+          <p className="text-[var(--text-muted)] text-sm mt-1">
+            or click to browse · PNG, JPG, WEBP up to 10MB
+          </p>
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+            <AlertCircle className="w-4 h-4 shrink-0" />{error}
           </div>
-        ) : (
-          <>
-            <Upload className="w-10 h-10 text-stone-400 mx-auto mb-3" />
-            <p className="text-stone-700 font-medium">Drop your reference image here</p>
-            <p className="text-stone-400 text-sm mt-1">or click to browse · PNG, JPG, WEBP up to 10MB</p>
-          </>
         )}
       </div>
+    );
+  }
+
+  // ─── STAGE: CROP ─────────────────────────────────────────────────
+  if (stage === "crop" && rawImage && rawPreviewUrl) {
+    return (
+      <div className="space-y-5">
+        {/* Size selector shown here so crop aspect updates live */}
+        <div>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">
+            Paper Size — sets crop ratio
+          </label>
+          <div className="grid grid-cols-4 gap-1.5">
+            {SIZES.map((s) => (
+              <button key={s} onClick={() => setSize(s)} className={optionBtn(size === s)}>{s}</button>
+            ))}
+          </div>
+        </div>
+
+        <ImageCropper
+          imageSrc={rawPreviewUrl}
+          fileName={rawImage.name}
+          selectedSize={size}
+          onConfirm={handleCropConfirm}
+          onCancel={resetAll}
+        />
+      </div>
+    );
+  }
+
+  // ─── STAGE: RESULT ───────────────────────────────────────────────
+  return (
+    <div className="space-y-5">
+      {/* Cropped preview + re-crop */}
+      {preview && (
+        <div className="relative group rounded-xl overflow-hidden bg-[var(--bg-subtle)] border border-[var(--border)]">
+          <Image src={preview} alt="Cropped preview" width={600} height={400}
+            className="w-full max-h-52 object-contain" />
+          <button
+            onClick={() => { setStage("crop"); setResult(null); }}
+            className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+          >
+            <span className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5">
+              <Crop className="w-3.5 h-3.5" />
+              Re-crop image
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Options */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Size */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">Paper Size</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Paper Size</label>
           <div className="grid grid-cols-4 gap-1">
             {SIZES.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSize(s)}
-                className={cn(
-                  "py-2 text-sm rounded-md border font-medium transition-all",
-                  size === s
-                    ? "bg-stone-900 text-white border-stone-900"
-                    : "bg-white text-stone-600 border-stone-300 hover:border-stone-500"
-                )}
-              >
-                {s}
-              </button>
+              <button key={s} onClick={() => setSize(s)} className={optionBtn(size === s)}>{s}</button>
             ))}
           </div>
         </div>
-
-        {/* Subjects */}
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">
-            Number of Subjects
-          </label>
-          <div className="grid grid-cols-4 gap-1">
-            {SUBJECTS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSubjects(s)}
-                className={cn(
-                  "py-2 text-sm rounded-md border font-medium transition-all",
-                  subjects === s
-                    ? "bg-stone-900 text-white border-stone-900"
-                    : "bg-white text-stone-600 border-stone-300 hover:border-stone-500"
-                )}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Rush */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">Delivery</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Delivery</label>
           <div className="grid grid-cols-2 gap-1">
-            {[
-              { label: "Standard", value: false },
-              { label: "Rush (+35%)", value: true },
-            ].map((opt) => (
-              <button
-                key={String(opt.value)}
-                onClick={() => setIsRush(opt.value)}
-                className={cn(
-                  "py-2 text-sm rounded-md border font-medium transition-all",
-                  isRush === opt.value
-                    ? "bg-stone-900 text-white border-stone-900"
-                    : "bg-white text-stone-600 border-stone-300 hover:border-stone-500"
-                )}
-              >
+            {[{ label: "Standard", value: false }, { label: "Rush +35%", value: true }].map((opt) => (
+              <button key={String(opt.value)} onClick={() => setIsRush(opt.value)}
+                className={optionBtn(isRush === opt.value)}>
                 {opt.label}
               </button>
             ))}
@@ -207,131 +240,159 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
         </div>
       </div>
 
-      {/* Analyze button */}
-      <Button
-        onClick={analyze}
-        disabled={!image || loading}
-        size="lg"
-        className="w-full"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Analyzing image...
-          </>
-        ) : (
-          <>
-            <Sparkles className="w-4 h-4" />
-            Estimate Price
-          </>
-        )}
+      <Button onClick={() => analyze()} disabled={!image || loading} size="lg" className="w-full">
+        {loading
+          ? <><Loader2 className="w-4 h-4 animate-spin" />Analyzing with AI...</>
+          : <><ScanSearch className="w-4 h-4" />Detect & Estimate Price</>}
       </Button>
 
-      {/* Error */}
+      {loading && (
+        <p className="text-xs text-[var(--text-muted)] text-center">
+          Running TensorFlow COCO-SSD + complexity analysis...
+        </p>
+      )}
+
       {error && (
-        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          {error}
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <AlertCircle className="w-4 h-4 shrink-0" />{error}
         </div>
       )}
 
-      {/* Result */}
       {result && (
-        <div className="border border-stone-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--bg-card)]">
           {/* Price header */}
-          <div className="bg-stone-900 text-white px-6 py-5 text-center">
-            <p className="text-stone-400 text-sm">Estimated Price</p>
+          <div className="bg-[var(--accent)] text-[var(--accent-fg)] px-6 py-5 text-center">
+            <p className="text-sm opacity-60">Estimated Price</p>
             <p className="text-4xl font-bold mt-1">
               {result.currency}{result.pricing.finalPrice.toLocaleString()}
             </p>
-            <p className="text-stone-400 text-xs mt-1">
-              *Final price confirmed by artist after review
-            </p>
+            <p className="text-xs opacity-50 mt-1">*Artist confirms final price after review</p>
           </div>
 
-          {/* Complexity badge */}
-          <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between">
+          {/* AI Detection */}
+          <div className="px-5 py-4 border-b border-[var(--border)]">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide flex items-center gap-1.5">
+                <ScanSearch className="w-3.5 h-3.5" />COCO-SSD Detected
+              </p>
+              <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-subtle)] px-2 py-0.5 rounded-full border border-[var(--border)]">
+                TensorFlow.js
+              </span>
+            </div>
+
+            {result.detection.detectedLabels.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {result.detection.allObjects
+                  .filter((o) => o.score >= 0.4)
+                  .sort((a, b) => b.score - a.score)
+                  .map((obj, i) => (
+                    <span key={i}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text)]">
+                      {obj.label}
+                      <span className="text-[var(--text-muted)]">{Math.round(obj.score * 100)}%</span>
+                    </span>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)] mb-3">
+                No subjects detected with high confidence.
+              </p>
+            )}
+
+            {/* Subject count */}
             <div>
-              <p className="text-sm font-medium text-stone-700">Image Complexity</p>
-              <p className="text-xs text-stone-500 mt-0.5">
-                {result.complexity.description}
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs text-[var(--text-muted)]">
+                  Subjects in sketch
+                  {subjectOverride === null && result.detection.subjectCount > 0 && (
+                    <span className="ml-1.5 text-green-600 dark:text-green-400 font-medium">
+                      · auto-detected: {result.detection.subjectCount}
+                    </span>
+                  )}
+                </p>
+                {subjectOverride !== null && (
+                  <button
+                    onClick={() => { setSubjectOverride(null); analyze(); }}
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3" />Reset to AI
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-4 gap-1">
+                {SUBJECTS.map((s) => (
+                  <button key={s} onClick={() => handleSubjectOverride(s)}
+                    className={cn(
+                      optionBtn(effectiveSubject === s),
+                      subjectOverride === null && result.detection.subjectKey === s
+                        ? "ring-1 ring-offset-1 ring-green-500" : ""
+                    )}>
+                    {s}
+                    {subjectOverride === null && result.detection.subjectKey === s && (
+                      <span className="block text-[10px] leading-none mt-0.5 opacity-60">AI</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
+                {subjectOverride !== null
+                  ? "Using manual count. Click Reset to use AI."
+                  : "Green ring = AI detected. Click to override."}
               </p>
             </div>
-            <span
-              className={cn(
-                "px-3 py-1 rounded-full text-xs font-semibold border",
-                complexityColors[result.complexity.level]
-              )}
-            >
+          </div>
+
+          {/* Complexity */}
+          <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-[var(--text)]">Image Complexity</p>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">{result.complexity.description}</p>
+            </div>
+            <span className={cn("px-3 py-1 rounded-full text-xs font-semibold border", complexityColors[result.complexity.level])}>
               {result.complexity.label}
             </span>
           </div>
 
-          {/* Complexity score bar */}
-          <div className="px-6 py-4 border-b border-stone-100">
-            <div className="flex justify-between text-xs text-stone-500 mb-1.5">
-              <span>Complexity Score</span>
-              <span>{result.complexity.score}/100</span>
+          {/* Score bar */}
+          <div className="px-5 py-4 border-b border-[var(--border)]">
+            <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1.5">
+              <span>Complexity Score</span><span>{result.complexity.score}/100</span>
             </div>
-            <div className="w-full bg-stone-100 rounded-full h-2">
-              <div
-                className="bg-stone-900 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${result.complexity.score}%` }}
-              />
+            <div className="w-full bg-[var(--bg-subtle)] rounded-full h-1.5">
+              <div className="bg-[var(--accent)] h-1.5 rounded-full transition-all duration-700"
+                style={{ width: `${result.complexity.score}%` }} />
             </div>
           </div>
 
-          {/* Price breakdown */}
-          <div className="px-6 py-4">
-            <p className="text-sm font-medium text-stone-700 mb-3 flex items-center gap-1">
-              <ChevronDown className="w-4 h-4" /> Price Breakdown
+          {/* Breakdown */}
+          <div className="px-5 py-4">
+            <p className="text-xs font-medium text-[var(--text-muted)] mb-3 flex items-center gap-1 uppercase tracking-wide">
+              <ChevronDown className="w-3.5 h-3.5" />Price Breakdown
             </p>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-stone-600">
-                <span>Base price ({size})</span>
-                <span>{result.currency}{result.pricing.breakdown.base}</span>
-              </div>
-              <div className="flex justify-between text-stone-600">
-                <span>Complexity ({result.complexity.label})</span>
-                <span>×{result.pricing.breakdown.complexityMult}</span>
-              </div>
-              {result.pricing.breakdown.subjectMult > 1 && (
-                <div className="flex justify-between text-stone-600">
-                  <span>Subjects ({subjects})</span>
-                  <span>×{result.pricing.breakdown.subjectMult}</span>
+              {[
+                [`Base (${size})`, `${result.currency}${result.pricing.breakdown.base}`],
+                [`Complexity (${result.complexity.label})`, `×${result.pricing.breakdown.complexityMult}`],
+                ...(result.pricing.breakdown.subjectMult > 1
+                  ? [[`Subjects (${effectiveSubject})`, `×${result.pricing.breakdown.subjectMult}`]]
+                  : []),
+                ...(isRush ? [["Rush fee", `×${result.pricing.breakdown.rushMult}`]] : []),
+              ].map(([label, val]) => (
+                <div key={label} className="flex justify-between text-[var(--text-muted)]">
+                  <span>{label}</span><span>{val}</span>
                 </div>
-              )}
-              {isRush && (
-                <div className="flex justify-between text-stone-600">
-                  <span>Rush fee</span>
-                  <span>×{result.pricing.breakdown.rushMult}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-stone-900 border-t border-stone-100 pt-2 mt-2">
+              ))}
+              <div className="flex justify-between font-semibold text-[var(--text)] border-t border-[var(--border)] pt-2 mt-1">
                 <span>Total Estimate</span>
                 <span>{result.currency}{result.pricing.finalPrice.toLocaleString()}</span>
               </div>
             </div>
           </div>
 
-          {/* CTA */}
           {showProceedButton && onProceed && (
-            <div className="px-6 pb-5">
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={() =>
-                  onProceed({
-                    imageFile: image!,
-                    result,
-                    size,
-                    subjects,
-                    isRush,
-                  })
-                }
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Proceed to Commission
+            <div className="px-5 pb-5">
+              <Button className="w-full" size="lg"
+                onClick={() => onProceed({ imageFile: image!, result, size, subjects: effectiveSubject, isRush })}>
+                <CheckCircle2 className="w-4 h-4" />Proceed to Commission
               </Button>
             </div>
           )}

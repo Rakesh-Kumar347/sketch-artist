@@ -10,8 +10,8 @@ export default function CommissionPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-stone-900">Commission a Sketch</h1>
-        <p className="text-stone-500 mt-3 max-w-xl mx-auto">
+        <h1 className="text-4xl font-bold text-[var(--text)]">Commission a Sketch</h1>
+        <p className="text-[var(--text-muted)] mt-3 max-w-xl mx-auto">
           Upload your reference photo and get an instant price estimate based on
           the image complexity. No commitment required until you confirm.
         </p>
@@ -26,11 +26,11 @@ export default function CommissionPage() {
         ].map((item) => (
           <div
             key={item.label}
-            className="bg-white border border-stone-200 rounded-xl p-4 text-center"
+            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center"
           >
-            <p className="text-xs text-stone-500 mb-1">{item.label}</p>
-            <p className="font-bold text-stone-900">{item.value}</p>
-            <p className="text-xs text-stone-400">{item.sub}</p>
+            <p className="text-xs text-[var(--text-muted)] mb-1">{item.label}</p>
+            <p className="font-bold text-[var(--text)]">{item.value}</p>
+            <p className="text-xs text-[var(--text-muted)]">{item.sub}</p>
           </div>
         ))}
       </div>

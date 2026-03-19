@@ -52,19 +52,19 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-white">
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-[var(--bg)]">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-stone-100 rounded-full blur-3xl opacity-60" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-stone-100 rounded-full blur-3xl opacity-60" />
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-[var(--bg-subtle)] rounded-full blur-3xl opacity-80" />
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[var(--bg-subtle)] rounded-full blur-3xl opacity-80" />
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 rounded-full text-stone-600 text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border border-[var(--border)] rounded-full text-[var(--text-muted)] text-sm font-medium mb-6">
             <Pencil className="w-4 h-4" />
             Handcrafted Pencil Sketches
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-stone-900 leading-tight tracking-tight">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-[var(--text)] leading-tight tracking-tight">
             Your Moments,{" "}
             <span className="relative inline-block">
               Sketched
@@ -75,7 +75,7 @@ export default function HomePage() {
               >
                 <path
                   d="M2 8 C50 2, 150 12, 298 6"
-                  stroke="#78716c"
+                  stroke="var(--text-muted)"
                   strokeWidth="3"
                   strokeLinecap="round"
                 />
@@ -84,7 +84,7 @@ export default function HomePage() {
             With Love
           </h1>
 
-          <p className="mt-8 text-lg sm:text-xl text-stone-500 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-8 text-lg sm:text-xl text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed">
             Transform your favorite photos into timeless pencil artwork. Upload
             an image, get an instant price — powered by local AI complexity
             analysis.
@@ -111,11 +111,11 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section className="py-20 bg-stone-50">
+      <section className="py-20 bg-[var(--bg-subtle)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-stone-900">How It Works</h2>
-            <p className="text-stone-500 mt-2">
+            <h2 className="text-3xl font-bold text-[var(--text)]">How It Works</h2>
+            <p className="text-[var(--text-muted)] mt-2">
               From photo to masterpiece in three simple steps
             </p>
           </div>
@@ -123,18 +123,18 @@ export default function HomePage() {
             {features.map((f, i) => (
               <div
                 key={i}
-                className="relative bg-white rounded-2xl p-7 shadow-sm border border-stone-100 group hover:shadow-md transition-shadow"
+                className="relative bg-[var(--bg-card)] rounded-2xl p-7 border border-[var(--border)] group hover:border-[var(--text-muted)] transition-colors"
               >
-                <div className="w-12 h-12 bg-stone-900 text-white rounded-xl flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-[var(--accent)] text-[var(--accent-fg)] rounded-xl flex items-center justify-center mb-4">
                   {f.icon}
                 </div>
-                <div className="absolute top-7 right-7 text-4xl font-bold text-stone-100 group-hover:text-stone-200 transition-colors">
+                <div className="absolute top-7 right-7 text-4xl font-bold text-[var(--border)] group-hover:text-[var(--text-muted)] transition-colors">
                   {i + 1}
                 </div>
-                <h3 className="text-lg font-semibold text-stone-900 mb-2">
+                <h3 className="text-base font-semibold text-[var(--text)] mb-2">
                   {f.title}
                 </h3>
-                <p className="text-stone-500 text-sm leading-relaxed">
+                <p className="text-[var(--text-muted)] text-sm leading-relaxed">
                   {f.description}
                 </p>
               </div>
@@ -144,19 +144,19 @@ export default function HomePage() {
       </section>
 
       {/* CTA banner */}
-      <section className="py-16 bg-stone-900 text-white">
+      <section className="py-16 bg-[var(--accent)]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-3xl font-bold mb-4">
+          <h2 className="text-3xl font-bold mb-4 text-[var(--accent-fg)]">
             Ready to turn your photo into art?
           </h2>
-          <p className="text-stone-400 mb-8">
+          <p className="text-[var(--accent-fg)] opacity-70 mb-8">
             Upload your image and get an instant price estimate. No commitment
             required.
           </p>
           <Link href="/commission">
             <Button
               size="lg"
-              className="bg-white text-stone-900 hover:bg-stone-100 text-base px-10"
+              className="bg-[var(--bg)] text-[var(--text)] hover:opacity-90 text-base px-10"
             >
               Try the Estimator Free
               <Sparkles className="w-4 h-4" />
@@ -166,10 +166,10 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-[var(--bg)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-stone-900">
+            <h2 className="text-3xl font-bold text-[var(--text)]">
               What Customers Say
             </h2>
           </div>
@@ -177,7 +177,7 @@ export default function HomePage() {
             {testimonials.map((t, i) => (
               <div
                 key={i}
-                className="bg-stone-50 rounded-2xl p-6 border border-stone-100"
+                className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border)]"
               >
                 <div className="flex gap-0.5 mb-3">
                   {Array.from({ length: t.rating }).map((_, j) => (
@@ -187,10 +187,10 @@ export default function HomePage() {
                     />
                   ))}
                 </div>
-                <p className="text-stone-600 text-sm leading-relaxed mb-4">
+                <p className="text-[var(--text-muted)] text-sm leading-relaxed mb-4">
                   &ldquo;{t.text}&rdquo;
                 </p>
-                <p className="text-stone-900 font-semibold text-sm">{t.name}</p>
+                <p className="text-[var(--text)] font-semibold text-sm">{t.name}</p>
               </div>
             ))}
           </div>

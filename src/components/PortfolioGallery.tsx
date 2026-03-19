@@ -59,8 +59,8 @@ export default function PortfolioGallery({ initialImages = [] }: Props) {
             className={cn(
               "px-4 py-1.5 rounded-full text-sm font-medium transition-all border",
               activeCategory === cat
-                ? "bg-stone-900 text-white border-stone-900"
-                : "bg-white text-stone-600 border-stone-300 hover:border-stone-500"
+                ? "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)]"
+                : "bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]"
             )}
           >
             {cat}
@@ -74,7 +74,7 @@ export default function PortfolioGallery({ initialImages = [] }: Props) {
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-square bg-stone-100 rounded-lg animate-pulse"
+              className="aspect-square bg-[var(--bg-subtle)] rounded-lg animate-pulse"
             />
           ))}
         </div>
@@ -82,7 +82,7 @@ export default function PortfolioGallery({ initialImages = [] }: Props) {
 
       {/* Empty state */}
       {!loading && filtered.length === 0 && (
-        <div className="text-center py-20 text-stone-400">
+        <div className="text-center py-20 text-[var(--text-muted)]">
           <p className="text-lg">No artworks yet in this category.</p>
           <p className="text-sm mt-1">Check back soon!</p>
         </div>
@@ -94,7 +94,7 @@ export default function PortfolioGallery({ initialImages = [] }: Props) {
           {filtered.map((img) => (
             <div
               key={img.id}
-              className="group relative break-inside-avoid cursor-pointer rounded-lg overflow-hidden bg-stone-100"
+              className="group relative break-inside-avoid cursor-pointer rounded-lg overflow-hidden bg-[var(--bg-subtle)]"
               onClick={() => setLightbox(img)}
             >
               <Image

@@ -3,16 +3,16 @@ import { Pencil, Instagram, Mail } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="bg-stone-900 text-stone-300 mt-auto">
+    <footer className="bg-[var(--bg-subtle)] border-t border-[var(--border)] mt-auto transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 text-white font-bold text-lg mb-3">
-              <Pencil className="w-5 h-5" />
+            <div className="flex items-center gap-2 font-bold text-base text-[var(--text)] mb-3">
+              <Pencil className="w-4 h-4" />
               <span>ArtFromHeart</span>
             </div>
-            <p className="text-sm leading-relaxed text-stone-400">
+            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
               Handcrafted pencil sketches that capture the essence of your
               moments. Every stroke tells a story.
             </p>
@@ -20,7 +20,9 @@ export default function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="text-white font-semibold mb-3">Quick Links</h4>
+            <h4 className="text-[var(--text)] font-semibold mb-3 text-sm">
+              Quick Links
+            </h4>
             <ul className="space-y-2 text-sm">
               {[
                 ["Portfolio", "/portfolio"],
@@ -31,7 +33,7 @@ export default function Footer() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className="hover:text-white transition-colors"
+                    className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                   >
                     {label}
                   </Link>
@@ -42,11 +44,13 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="text-white font-semibold mb-3">Get in Touch</h4>
-            <div className="space-y-2 text-sm">
+            <h4 className="text-[var(--text)] font-semibold mb-3 text-sm">
+              Get in Touch
+            </h4>
+            <div className="space-y-2 text-sm text-[var(--text-muted)]">
               <a
                 href="mailto:artist@gmail.com"
-                className="flex items-center gap-2 hover:text-white transition-colors"
+                className="flex items-center gap-2 hover:text-[var(--text)] transition-colors"
               >
                 <Mail className="w-4 h-4" />
                 artist@gmail.com
@@ -55,7 +59,7 @@ export default function Footer() {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-white transition-colors"
+                className="flex items-center gap-2 hover:text-[var(--text)] transition-colors"
               >
                 <Instagram className="w-4 h-4" />
                 @artfromheart
@@ -64,7 +68,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-stone-800 mt-8 pt-8 text-sm text-stone-500 text-center">
+        <div className="border-t border-[var(--border)] mt-8 pt-6 text-xs text-[var(--text-muted)] text-center">
           © {new Date().getFullYear()} ArtFromHeart. All rights reserved.
         </div>
       </div>

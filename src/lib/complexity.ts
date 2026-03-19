@@ -145,9 +145,9 @@ export const PRICING = {
     complex: 2.7,
   },
   subjectMultipliers: {
-    1: 1.0,
-    2: 1.3,
-    3: 1.6,
+    "1": 1.0,
+    "2": 1.3,
+    "3": 1.6,
     "4+": 2.0,
   },
   rushFeeMultiplier: 1.35,

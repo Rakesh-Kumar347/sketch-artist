@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ThemeProvider from "@/components/ThemeProvider";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -24,13 +25,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body
-        className={`${geist.className} bg-stone-50 min-h-screen flex flex-col`}
-      >
-        <Navbar />
-        <main className="flex-1 pt-16">{children}</main>
-        <Footer />
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+      <body className={`${geist.className} min-h-screen flex flex-col`}>
+        <ThemeProvider>
+          <Navbar />
+          <main className="flex-1 pt-16">{children}</main>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );

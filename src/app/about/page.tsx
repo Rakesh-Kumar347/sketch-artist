@@ -40,27 +40,26 @@ const process = [
 export default function AboutPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
-      {/* Header */}
       <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold text-stone-900">About the Artist</h1>
-        <p className="text-stone-500 mt-3 max-w-xl mx-auto">
+        <h1 className="text-4xl font-bold text-[var(--text)]">About the Artist</h1>
+        <p className="text-[var(--text-muted)] mt-3 max-w-xl mx-auto">
           Every sketch is a story. Here&apos;s the story behind the artist.
         </p>
       </div>
 
       {/* Artist bio */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-20">
-        <div className="bg-stone-100 rounded-2xl aspect-[4/5] flex items-center justify-center">
-          <div className="text-center text-stone-400">
+        <div className="bg-[var(--bg-subtle)] border border-[var(--border)] rounded-2xl aspect-[4/5] flex items-center justify-center">
+          <div className="text-center text-[var(--text-muted)]">
             <Pencil className="w-12 h-12 mx-auto mb-2" />
             <p className="text-sm">Artist Photo</p>
           </div>
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-stone-900 mb-4">
+          <h2 className="text-2xl font-bold text-[var(--text)] mb-4">
             Passion Drawn on Paper
           </h2>
-          <div className="space-y-4 text-stone-600 leading-relaxed">
+          <div className="space-y-4 text-[var(--text-muted)] leading-relaxed text-sm">
             <p>
               I&apos;ve been drawing since I was a child, filling notebooks with
               faces, landscapes, and everything that caught my eye. What started
@@ -91,34 +90,34 @@ export default function AboutPage() {
         {stats.map((s) => (
           <div
             key={s.label}
-            className="bg-white border border-stone-100 rounded-2xl p-6 text-center shadow-sm"
+            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 text-center"
           >
-            <div className="w-10 h-10 bg-stone-100 rounded-lg flex items-center justify-center mx-auto mb-3 text-stone-600">
+            <div className="w-10 h-10 bg-[var(--bg-subtle)] rounded-lg flex items-center justify-center mx-auto mb-3 text-[var(--text-muted)]">
               {s.icon}
             </div>
-            <p className="text-2xl font-bold text-stone-900">{s.value}</p>
-            <p className="text-xs text-stone-500 mt-1">{s.label}</p>
+            <p className="text-2xl font-bold text-[var(--text)]">{s.value}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Process */}
       <div>
-        <h2 className="text-3xl font-bold text-stone-900 text-center mb-10">
+        <h2 className="text-3xl font-bold text-[var(--text)] text-center mb-10">
           The Process
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {process.map((p) => (
             <div
               key={p.step}
-              className="bg-white border border-stone-100 rounded-2xl p-6 flex gap-4 shadow-sm"
+              className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 flex gap-4"
             >
-              <div className="text-4xl font-bold text-stone-200 leading-none shrink-0 pt-1">
+              <div className="text-4xl font-bold text-[var(--border)] leading-none shrink-0 pt-1">
                 {p.step}
               </div>
               <div>
-                <h3 className="font-semibold text-stone-900 mb-1.5">{p.title}</h3>
-                <p className="text-stone-500 text-sm leading-relaxed">{p.desc}</p>
+                <h3 className="font-semibold text-[var(--text)] mb-1.5">{p.title}</h3>
+                <p className="text-[var(--text-muted)] text-sm leading-relaxed">{p.desc}</p>
               </div>
             </div>
           ))}
