@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
-/* ── Light theme ── */
+/* ── Light purple theme ── */
 :root {
-  --bg:          #ffffff;
-  --bg-subtle:   #f7f7f6;
+  --bg:          #f5f3ff;
+  --bg-subtle:   #ede9fe;
   --bg-card:     #ffffff;
-  --border:      #e7e5e4;
-  --text:        #1c1917;
-  --text-muted:  #78716c;
-  --accent:      #1c1917;
+  --border:      #ddd6fe;
+  --text:        #2e1065;
+  --text-muted:  #7c3aed;
+  --accent:      #7c3aed;
   --accent-fg:   #ffffff;
-  --ring:        #1c1917;
+  --ring:        #7c3aed;
 }
 
 /* ── Dark theme ── */
