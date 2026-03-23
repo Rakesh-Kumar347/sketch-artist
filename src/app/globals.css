@@ -50,3 +50,35 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg-subtle); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── Portfolio Homepage Dark Theme ─────────────────────────── */
+:root {
+  --bg-primary: #080808;
+  --bg-secondary: #111010;
+  --surface: #1a1917;
+  --accent-gold: #c9a96e;
+  --accent-rose: #d4a5a5;
+  --text-primary: #f0ece4;
+  --text-muted: #7a7570;
+  --border-subtle: rgba(201,169,110,0.15);
+}
+
+/* Custom cursor hide on portfolio page */
+.portfolio-page * { cursor: none !important; }
+
+/* Lenis smooth scroll */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+
+/* Preloader styles */
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #080808;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
