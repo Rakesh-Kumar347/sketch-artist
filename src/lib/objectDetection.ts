@@ -17,8 +17,8 @@ const ANIMAL_CLASSES = new Set([
 ]);
 
 // Foreground focus thresholds
-const MIN_AREA_RATIO = 0.02;    // subject bbox must cover ≥ 2% of the image
-const MIN_RELATIVE_AREA = 0.20; // subject must be ≥ 20% of the largest subject's area
+const MIN_AREA_RATIO = 0.03;    // subject bbox must cover ≥ 3% of the image
+const MIN_RELATIVE_AREA = 0.50; // subject must be ≥ 50% of the largest subject's area
 
 /**
  * Filters detected subjects to only those that appear to be in focus / foreground.
