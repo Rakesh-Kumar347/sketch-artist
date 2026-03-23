@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadReferenceImage } from "@/lib/storage";
 import { analyzeComplexity, calculatePrice } from "@/lib/complexity";
 import type { SizeKey, SubjectKey } from "@/lib/complexity";
 import { saveOrder } from "@/lib/orderStore";
@@ -33,13 +33,11 @@ export async function POST(req: NextRequest) {
     const complexity = await analyzeComplexity(buffer);
     const pricing    = calculatePrice(size, complexity.level, subjects, isRush);
 
-    const { url: referenceUrl, publicId } = await uploadToCloudinary(
-      buffer,
-      "sketch-artist/references"
-    );
+    const orderId = `ORD-${Date.now()}`;
+    const { url: referenceUrl, path: referencePath } = await uploadReferenceImage(buffer, orderId);
 
     const order = await saveOrder({
-      id: `ORD-${Date.now()}`,
+      id: orderId,
       name,
       email,
       phone,
@@ -48,7 +46,7 @@ export async function POST(req: NextRequest) {
       isRush,
       notes,
       referenceUrl,
-      referencePublicId: publicId,
+      referencePath,
       complexity: complexity.level,
       complexityScore: complexity.score,
       estimatedPrice: pricing.finalPrice,

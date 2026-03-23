@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPortfolioImages } from "@/lib/cloudinary";
+import { getPortfolioImages } from "@/lib/storage";
 
 export async function GET() {
   try {

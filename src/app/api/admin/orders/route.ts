@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllOrders, updateOrderStatus } from "@/lib/orderStore";
 import type { OrderStatus } from "@/lib/orderStore";
+import { verifyToken } from "@/lib/supabase";
 import { orderAcceptedToCustomer, orderCompletedToCustomer } from "@/lib/mailer";
 
-function isAuthed(req: NextRequest): boolean {
-  return req.headers.get("x-admin-password") === process.env.ADMIN_PASSWORD;
+async function isAuthed(req: NextRequest): Promise<boolean> {
+  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+  if (!token) return false;
+  const user = await verifyToken(token);
+  return user !== null;
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthed(req)) {
+  if (!(await isAuthed(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const orders = await getAllOrders();
@@ -16,7 +20,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!isAuthed(req)) {
+  if (!(await isAuthed(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -27,7 +31,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  // Fire status-change emails (non-critical)
   if (status === "in_progress") {
     orderAcceptedToCustomer(updated).catch((e) =>
       console.warn("orderAccepted email error:", e)

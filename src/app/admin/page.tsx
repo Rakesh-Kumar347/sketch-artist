@@ -8,7 +8,8 @@ import {
   ExternalLink, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { PortfolioImage } from "@/lib/cloudinary";
+import { supabase } from "@/lib/supabase";
+import type { PortfolioImage } from "@/lib/storage";
 import type { Order } from "@/lib/orderStore";
 import { cn } from "@/lib/utils";
 
@@ -47,16 +48,19 @@ function fmt(iso: string) {
   });
 }
 
-// ─── Login ───────────────────────────────────────────────────────────────────
+// ─── Login ────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const [authed, setAuthed] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
+  // Restore session from sessionStorage on mount
   useEffect(() => {
-    if (sessionStorage.getItem("admin_auth")) setAuthed(true);
+    const saved = sessionStorage.getItem("admin_token");
+    if (saved) setToken(saved);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -67,13 +71,14 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       });
-      if (res.ok) {
-        sessionStorage.setItem("admin_auth", password);
-        setAuthed(true);
+      const data = await res.json();
+      if (res.ok && data.accessToken) {
+        sessionStorage.setItem("admin_token", data.accessToken);
+        setToken(data.accessToken);
       } else {
-        setLoginError("Incorrect password");
+        setLoginError(data.error || "Invalid credentials");
       }
     } catch {
       setLoginError("Connection error");
@@ -82,21 +87,36 @@ export default function AdminPage() {
     }
   };
 
-  if (!authed) {
+  const handleLogout = async () => {
+    sessionStorage.removeItem("admin_token");
+    setToken(null);
+    await supabase.auth.signOut();
+  };
+
+  if (!token) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-stone-200 w-full max-w-sm">
-          <div className="flex items-center justify-center w-12 h-12 bg-stone-900 text-white rounded-xl mx-auto mb-4">
+        <div className="bg-[var(--bg-card)] rounded-2xl p-8 shadow-sm border border-[var(--border)] w-full max-w-sm">
+          <div className="flex items-center justify-center w-12 h-12 bg-[var(--accent)] text-white rounded-xl mx-auto mb-4">
             <Lock className="w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold text-stone-900 text-center mb-6">Admin Access</h1>
+          <h1 className="text-xl font-bold text-[var(--text)] text-center mb-6">Admin Access</h1>
           <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Admin email"
+              className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] text-sm bg-[var(--bg)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              required
+            />
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter admin password"
-              className="w-full px-3 py-2.5 rounded-lg border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              placeholder="Password"
+              className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] text-sm bg-[var(--bg)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              required
             />
             {loginError && (
               <p className="text-red-500 text-sm flex items-center gap-1">
@@ -113,21 +133,18 @@ export default function AdminPage() {
   }
 
   return (
-    <AdminDashboard
-      adminPassword={sessionStorage.getItem("admin_auth") || ""}
-      onLogout={() => { sessionStorage.removeItem("admin_auth"); setAuthed(false); }}
-    />
+    <AdminDashboard token={token} onLogout={handleLogout} />
   );
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-function AdminDashboard({ adminPassword, onLogout }: { adminPassword: string; onLogout: () => void }) {
+function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("orders");
   const [pendingCount, setPendingCount] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/orders", { headers: { "x-admin-password": adminPassword } })
+    fetch("/api/admin/orders", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => {
         const count = (d.orders ?? []).filter(
@@ -136,23 +153,23 @@ function AdminDashboard({ adminPassword, onLogout }: { adminPassword: string; on
         setPendingCount(count);
       })
       .catch(() => {});
-  }, [adminPassword]);
+  }, [token]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Admin Panel</h1>
-          <p className="text-stone-500 text-sm">Manage orders &amp; portfolio</p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Admin Panel</h1>
+          <p className="text-[var(--text-muted)] text-sm">Manage orders &amp; portfolio</p>
         </div>
-        <Button variant="ghost" onClick={onLogout} className="text-stone-500">
+        <Button variant="ghost" onClick={onLogout} className="text-[var(--text-muted)]">
           <LogOut className="w-4 h-4" />Logout
         </Button>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-8 border-b border-stone-200">
+      <div className="flex gap-1 mb-8 border-b border-[var(--border)]">
         {([
           { key: "orders",    label: "Orders",        icon: ShoppingBag },
           { key: "history",   label: "Order History", icon: Clock },
@@ -164,8 +181,8 @@ function AdminDashboard({ adminPassword, onLogout }: { adminPassword: string; on
             className={cn(
               "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
               tab === key
-                ? "border-stone-900 text-stone-900"
-                : "border-transparent text-stone-500 hover:text-stone-700"
+                ? "border-[var(--accent)] text-[var(--accent)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]"
             )}
           >
             <Icon className="w-4 h-4" />
@@ -179,16 +196,16 @@ function AdminDashboard({ adminPassword, onLogout }: { adminPassword: string; on
         ))}
       </div>
 
-      {tab === "orders"    && <OrdersTab adminPassword={adminPassword} active />}
-      {tab === "history"   && <OrdersTab adminPassword={adminPassword} active={false} />}
-      {tab === "portfolio" && <PortfolioTab adminPassword={adminPassword} />}
+      {tab === "orders"    && <OrdersTab token={token} active />}
+      {tab === "history"   && <OrdersTab token={token} active={false} />}
+      {tab === "portfolio" && <PortfolioTab token={token} />}
     </div>
   );
 }
 
 // ─── Orders Tab ───────────────────────────────────────────────────────────────
 
-function OrdersTab({ adminPassword, active }: { adminPassword: string; active: boolean }) {
+function OrdersTab({ token, active }: { token: string; active: boolean }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -197,14 +214,14 @@ function OrdersTab({ adminPassword, active }: { adminPassword: string; active: b
     setLoading(true);
     try {
       const res = await fetch("/api/admin/orders", {
-        headers: { "x-admin-password": adminPassword },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setOrders(data.orders ?? []);
     } finally {
       setLoading(false);
     }
-  }, [adminPassword]);
+  }, [token]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -213,7 +230,7 @@ function OrdersTab({ adminPassword, active }: { adminPassword: string; active: b
     try {
       const res = await fetch("/api/admin/orders", {
         method: "PATCH",
-        headers: { "x-admin-password": adminPassword, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ id, status }),
       });
       const data = await res.json();
@@ -235,7 +252,7 @@ function OrdersTab({ adminPassword, active }: { adminPassword: string; active: b
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-36 bg-stone-100 rounded-2xl animate-pulse" />
+          <div key={i} className="h-36 bg-[var(--bg-subtle)] rounded-2xl animate-pulse" />
         ))}
       </div>
     );
@@ -243,14 +260,13 @@ function OrdersTab({ adminPassword, active }: { adminPassword: string; active: b
 
   if (visible.length === 0) {
     return (
-      <div className="text-center py-20 text-stone-400">
+      <div className="text-center py-20 text-[var(--text-muted)]">
         <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
         <p>{active ? "No active orders right now." : "No completed or cancelled orders yet."}</p>
       </div>
     );
   }
 
-  // Stats bar (history only)
   const totalRevenue = visible
     .filter((o) => o.status === "completed")
     .reduce((sum, o) => sum + o.estimatedPrice, 0);
@@ -264,7 +280,6 @@ function OrdersTab({ adminPassword, active }: { adminPassword: string; active: b
           <StatCard label="Revenue" value={`₹${totalRevenue.toLocaleString()}`} />
         </div>
       )}
-
       {visible.map((order) => (
         <OrderCard
           key={order.id}
@@ -280,9 +295,9 @@ function OrdersTab({ adminPassword, active }: { adminPassword: string; active: b
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-4">
-      <p className="text-xs text-stone-500 mb-1">{label}</p>
-      <p className="text-xl font-bold text-stone-900">{value}</p>
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
+      <p className="text-xs text-[var(--text-muted)] mb-1">{label}</p>
+      <p className="text-xl font-bold text-[var(--text)]">{value}</p>
     </div>
   );
 }
@@ -298,13 +313,12 @@ function OrderCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
-      {/* Header row */}
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3 min-w-0">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs text-stone-400">{order.id}</span>
+              <span className="font-mono text-xs text-[var(--text-muted)]">{order.id}</span>
               <StatusBadge status={order.status} />
               {order.isRush && (
                 <span className="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full font-medium">
@@ -312,25 +326,23 @@ function OrderCard({
                 </span>
               )}
             </div>
-            <p className="text-sm font-semibold text-stone-900 mt-0.5">{order.name}</p>
-            <p className="text-xs text-stone-500">{order.email}{order.phone && ` · ${order.phone}`}</p>
+            <p className="text-sm font-semibold text-[var(--text)] mt-0.5">{order.name}</p>
+            <p className="text-xs text-[var(--text-muted)]">{order.email}{order.phone && ` · ${order.phone}`}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right hidden sm:block">
-            <p className="text-lg font-bold text-stone-900">₹{order.estimatedPrice.toLocaleString()}</p>
-            <p className="text-xs text-stone-500">{order.size} · {order.subjects} subject{order.subjects !== "1" ? "s" : ""}</p>
+            <p className="text-lg font-bold text-[var(--text)]">₹{order.estimatedPrice.toLocaleString()}</p>
+            <p className="text-xs text-[var(--text-muted)]">{order.size} · {order.subjects} subject{order.subjects !== "1" ? "s" : ""}</p>
           </div>
-          <button onClick={() => setExpanded((v) => !v)} className="text-stone-400 hover:text-stone-700 p-1">
+          <button onClick={() => setExpanded((v) => !v)} className="text-[var(--text-muted)] hover:text-[var(--text)] p-1">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-stone-100 px-5 py-4 space-y-4">
-          {/* Order details grid */}
+        <div className="border-t border-[var(--border)] px-5 py-4 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
             {[
               ["Paper Size", order.size],
@@ -342,35 +354,32 @@ function OrderCard({
               ["Submitted", fmt(order.submittedAt)],
               ["Updated", fmt(order.updatedAt)],
             ].map(([label, value]) => (
-              <div key={label} className="bg-stone-50 rounded-lg p-2.5">
-                <p className="text-xs text-stone-400 mb-0.5">{label}</p>
-                <p className="font-medium text-stone-800 capitalize">{value}</p>
+              <div key={label} className="bg-[var(--bg-subtle)] rounded-lg p-2.5">
+                <p className="text-xs text-[var(--text-muted)] mb-0.5">{label}</p>
+                <p className="font-medium text-[var(--text)] capitalize">{value}</p>
               </div>
             ))}
           </div>
 
-          {/* Notes */}
           {order.notes && (
-            <div className="bg-stone-50 rounded-lg p-3">
-              <p className="text-xs text-stone-400 mb-1">Special Instructions</p>
-              <p className="text-sm text-stone-700">{order.notes}</p>
+            <div className="bg-[var(--bg-subtle)] rounded-lg p-3">
+              <p className="text-xs text-[var(--text-muted)] mb-1">Special Instructions</p>
+              <p className="text-sm text-[var(--text)]">{order.notes}</p>
             </div>
           )}
 
-          {/* Reference image */}
           <div className="flex items-center gap-3">
             <a
               href={order.referenceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+              className="inline-flex items-center gap-1.5 text-sm text-[var(--accent)] hover:opacity-80 font-medium"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               View Reference Image
             </a>
           </div>
 
-          {/* Actions */}
           {active && (
             <div className="flex flex-wrap gap-2 pt-1">
               {order.status === "pending" && (
@@ -410,7 +419,7 @@ function OrderCard({
 
 // ─── Portfolio Tab ────────────────────────────────────────────────────────────
 
-function PortfolioTab({ adminPassword }: { adminPassword: string }) {
+function PortfolioTab({ token }: { token: string }) {
   const [images, setImages] = useState<PortfolioImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -450,7 +459,7 @@ function PortfolioTab({ adminPassword }: { adminPassword: string }) {
       formData.append("description", description);
       const res = await fetch("/api/portfolio/upload", {
         method: "POST",
-        headers: { "x-admin-password": adminPassword },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       if (!res.ok) throw new Error("Upload failed");
@@ -468,16 +477,16 @@ function PortfolioTab({ adminPassword }: { adminPassword: string }) {
     }
   };
 
-  const handleDelete = async (publicId: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this image from portfolio?")) return;
-    setDeleting(publicId);
+    setDeleting(id);
     try {
       await fetch("/api/portfolio/upload", {
         method: "DELETE",
-        headers: { "x-admin-password": adminPassword, "Content-Type": "application/json" },
-        body: JSON.stringify({ publicId }),
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
       });
-      setImages((prev) => prev.filter((img) => img.id !== publicId));
+      setImages((prev) => prev.filter((img) => img.id !== id));
     } finally {
       setDeleting(null);
     }
@@ -487,15 +496,14 @@ function PortfolioTab({ adminPassword }: { adminPassword: string }) {
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
       {/* Upload form */}
       <div className="lg:col-span-2">
-        <div className="bg-white border border-stone-200 rounded-2xl p-6 sticky top-24">
-          <h2 className="font-semibold text-stone-900 mb-4 flex items-center gap-2">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 sticky top-24">
+          <h2 className="font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
             <Plus className="w-4 h-4" />Add Artwork
           </h2>
           <form onSubmit={handleUpload} className="space-y-4">
             <div
               className={cn(
-                "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors",
-                preview ? "border-stone-300" : "border-stone-300 hover:border-stone-400"
+                "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors border-[var(--border)] hover:border-[var(--accent)]"
               )}
               onClick={() => document.getElementById("admin-file")?.click()}
             >
@@ -511,24 +519,24 @@ function PortfolioTab({ adminPassword }: { adminPassword: string }) {
                   className="max-h-40 mx-auto object-contain rounded-lg" />
               ) : (
                 <div className="py-6">
-                  <Upload className="w-7 h-7 text-stone-400 mx-auto mb-2" />
-                  <p className="text-sm text-stone-500">Click to select artwork</p>
+                  <Upload className="w-7 h-7 text-[var(--text-muted)] mx-auto mb-2" />
+                  <p className="text-sm text-[var(--text-muted)]">Click to select artwork</p>
                 </div>
               )}
             </div>
 
             <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
               placeholder="Artwork title"
-              className="w-full px-3 py-2.5 rounded-lg border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900" />
+              className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] text-sm bg-[var(--bg)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
 
             <select value={category} onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white">
+              className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] text-sm bg-[var(--bg)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
 
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
               placeholder="Description (optional)" rows={2}
-              className="w-full px-3 py-2.5 rounded-lg border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 resize-none" />
+              className="w-full px-3 py-2.5 rounded-lg border border-[var(--border)] text-sm bg-[var(--bg)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none" />
 
             {error && (
               <p className="text-red-500 text-sm flex items-center gap-1">
@@ -552,25 +560,25 @@ function PortfolioTab({ adminPassword }: { adminPassword: string }) {
 
       {/* Portfolio grid */}
       <div className="lg:col-span-3">
-        <h2 className="font-semibold text-stone-900 mb-4">
+        <h2 className="font-semibold text-[var(--text)] mb-4">
           Portfolio ({images.length} artworks)
         </h2>
         {loading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="aspect-square bg-stone-100 rounded-xl animate-pulse" />
+              <div key={i} className="aspect-square bg-[var(--bg-subtle)] rounded-xl animate-pulse" />
             ))}
           </div>
         )}
         {!loading && images.length === 0 && (
-          <div className="text-center py-16 text-stone-400">
+          <div className="text-center py-16 text-[var(--text-muted)]">
             <p>No artworks yet. Upload your first piece!</p>
           </div>
         )}
         {!loading && images.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {images.map((img) => (
-              <div key={img.id} className="group relative rounded-xl overflow-hidden bg-stone-100 aspect-square">
+              <div key={img.id} className="group relative rounded-xl overflow-hidden bg-[var(--bg-subtle)] aspect-square">
                 <Image src={img.url} alt={img.title} fill className="object-cover" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                   <p className="text-white text-xs font-medium text-center px-2 truncate w-full">{img.title}</p>
