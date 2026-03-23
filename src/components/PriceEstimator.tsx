@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Image from "next/image";
 import {
   Upload, Loader2, AlertCircle, CheckCircle2,
-  ChevronDown, ScanSearch, Crop,
+  ChevronDown, ScanSearch, Crop, RefreshCw, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -187,15 +187,33 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
   if (stage === "crop" && rawImage && rawPreviewUrl) {
     return (
       <div className="space-y-5">
-        {/* Size selector shown here so crop aspect updates live */}
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">
-            Paper Size — sets crop ratio
-          </label>
-          <div className="grid grid-cols-4 gap-1.5">
-            {SIZES.map((s) => (
-              <button key={s} onClick={() => setSize(s)} className={optionBtn(size === s)}>{s}</button>
-            ))}
+        {/* Size selector + picture actions */}
+        <div className="flex items-end justify-between gap-4">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">
+              Paper Size — sets crop ratio
+            </label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {SIZES.map((s) => (
+                <button key={s} onClick={() => setSize(s)} className={optionBtn(size === s)}>{s}</button>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <input id="change-file-crop" type="file" accept="image/*" className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+            <button
+              onClick={() => document.getElementById("change-file-crop")?.click()}
+              className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--text-muted)] transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />Change
+            </button>
+            <button
+              onClick={resetAll}
+              className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />Remove
+            </button>
           </div>
         </div>
 
@@ -213,20 +231,38 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
   // ─── STAGE: RESULT ───────────────────────────────────────────────
   return (
     <div className="space-y-5">
-      {/* Cropped preview + re-crop */}
+      {/* Cropped preview + actions */}
       {preview && (
-        <div className="relative group rounded-xl overflow-hidden bg-[var(--bg-subtle)] border border-[var(--border)]">
-          <Image src={preview} alt="Cropped preview" width={600} height={400}
-            className="w-full max-h-52 object-contain" />
-          <button
-            onClick={() => { setStage("crop"); setResult(null); }}
-            className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-          >
-            <span className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <Crop className="w-3.5 h-3.5" />
-              Re-crop image
-            </span>
-          </button>
+        <div className="space-y-2">
+          <div className="relative group rounded-xl overflow-hidden bg-[var(--bg-subtle)] border border-[var(--border)]">
+            <Image src={preview} alt="Cropped preview" width={600} height={400}
+              className="w-full max-h-52 object-contain" />
+            <button
+              onClick={() => { setStage("crop"); setResult(null); }}
+              className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+            >
+              <span className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                <Crop className="w-3.5 h-3.5" />Re-crop image
+              </span>
+            </button>
+          </div>
+          {/* Change / Remove */}
+          <div className="flex gap-2">
+            <input id="change-file-result" type="file" accept="image/*" className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+            <button
+              onClick={() => document.getElementById("change-file-result")?.click()}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--text-muted)] transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />Change Picture
+            </button>
+            <button
+              onClick={resetAll}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />Remove Picture
+            </button>
+          </div>
         </div>
       )}
 
