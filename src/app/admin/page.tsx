@@ -124,6 +124,19 @@ export default function AdminPage() {
 
 function AdminDashboard({ adminPassword, onLogout }: { adminPassword: string; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("orders");
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/orders", { headers: { "x-admin-password": adminPassword } })
+      .then((r) => r.json())
+      .then((d) => {
+        const count = (d.orders ?? []).filter(
+          (o: Order) => o.status === "pending"
+        ).length;
+        setPendingCount(count);
+      })
+      .catch(() => {});
+  }, [adminPassword]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
@@ -155,7 +168,13 @@ function AdminDashboard({ adminPassword, onLogout }: { adminPassword: string; on
                 : "border-transparent text-stone-500 hover:text-stone-700"
             )}
           >
-            <Icon className="w-4 h-4" />{label}
+            <Icon className="w-4 h-4" />
+            {label}
+            {key === "orders" && pendingCount !== null && pendingCount > 0 && (
+              <span className="ml-1 min-w-[18px] h-[18px] px-1 rounded-full bg-violet-600 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
