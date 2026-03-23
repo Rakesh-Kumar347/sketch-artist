@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local order data (production uses Vercel KV)
+/data/orders.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -16,6 +16,38 @@ const ANIMAL_CLASSES = new Set([
   "bear", "zebra", "giraffe", "bird", "sheep",
 ]);
 
+// Foreground focus thresholds
+const MIN_AREA_RATIO = 0.02;    // subject bbox must cover ≥ 2% of the image
+const MIN_RELATIVE_AREA = 0.20; // subject must be ≥ 20% of the largest subject's area
+
+/**
+ * Filters detected subjects to only those that appear to be in focus / foreground.
+ * Uses bounding box area as a proxy for depth — background subjects are small.
+ */
+function filterForeground(
+  subjects: DetectedObject[],
+  imageWidth: number,
+  imageHeight: number
+): DetectedObject[] {
+  if (subjects.length === 0) return subjects;
+
+  const imageArea = imageWidth * imageHeight;
+
+  // Step 1: drop subjects whose bbox is too small relative to the full image
+  const large = subjects.filter(
+    (o) => (o.bbox[2] * o.bbox[3]) / imageArea >= MIN_AREA_RATIO
+  );
+
+  // Fallback: if nothing passes (very zoomed-out shot), keep all subjects
+  const candidates = large.length > 0 ? large : subjects;
+
+  // Step 2: drop subjects much smaller than the largest detected subject
+  const maxArea = Math.max(...candidates.map((o) => o.bbox[2] * o.bbox[3]));
+  return candidates.filter(
+    (o) => (o.bbox[2] * o.bbox[3]) / maxArea >= MIN_RELATIVE_AREA
+  );
+}
+
 export interface DetectionResult {
   subjectCount: number;           // auto-detected count for pricing
   subjectKey: "1" | "2" | "3" | "4+"; // mapped to pricing tier
@@ -86,19 +118,26 @@ export async function detectObjects(imageBuffer: Buffer): Promise<DetectionResul
     bbox: p.bbox as [number, number, number, number],
   }));
 
-  // Count subjects: people + major animals (score ≥ 0.5)
-  const subjectObjects = allObjects.filter(
+  // All subject candidates: people + major animals (score ≥ 0.5)
+  const subjectCandidates = allObjects.filter(
     (o) => o.score >= 0.5 && (PERSON_CLASSES.has(o.label) || ANIMAL_CLASSES.has(o.label))
   );
+
+  // Keep only foreground subjects (in-focus, not distant background figures)
+  const subjectObjects = filterForeground(subjectCandidates, width, height);
 
   const detectedLabels = subjectObjects.map((o) => o.label);
   const subjectCount = subjectObjects.length;
 
-  // Background complexity: non-subject objects detected
-  const backgroundObjects = allObjects.filter(
+  // Background complexity: non-subject objects + subjects filtered out as background
+  const nonSubjectObjects = allObjects.filter(
     (o) => !PERSON_CLASSES.has(o.label) && !ANIMAL_CLASSES.has(o.label)
   );
-  const backgroundComplexity = Math.min(backgroundObjects.length / 5, 1);
+  const backgroundSubjects = subjectCandidates.filter((o) => !subjectObjects.includes(o));
+  const backgroundComplexity = Math.min(
+    (nonSubjectObjects.length + backgroundSubjects.length) / 5,
+    1
+  );
 
   const subjectKey = toSubjectKey(subjectCount);
 

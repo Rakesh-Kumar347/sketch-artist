@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Image from "next/image";
 import {
   Upload, Loader2, AlertCircle, CheckCircle2,
-  ChevronDown, ScanSearch, RefreshCw, Crop,
+  ChevronDown, ScanSearch, Crop,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,6 @@ import type { ComplexityResult, PriceBreakdown } from "@/lib/complexity";
 import type { DetectionResult } from "@/lib/objectDetection";
 
 const SIZES = ["A5", "A4", "A3", "A2"] as const;
-const SUBJECTS = ["1", "2", "3", "4+"] as const;
 
 type Stage = "upload" | "crop" | "result";
 
@@ -61,14 +60,17 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
 
   const [stage, setStage] = useState<Stage>("upload");
   const [size, setSize] = useState<"A5" | "A4" | "A3" | "A2">("A4");
-  const [subjectOverride, setSubjectOverride] = useState<"1" | "2" | "3" | "4+" | null>(null);
   const [isRush, setIsRush] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [sizeAutoUpgraded, setSizeAutoUpgraded] = useState(false);
 
-  const effectiveSubject = subjectOverride ?? result?.detection.subjectKey ?? "1";
+  const detectedSubjectKey = result?.detection.subjectKey ?? "1";
+
+  // A4/A5 are too small for 3+ subjects
+  const tooManyForSmall = result !== null && (detectedSubjectKey === "3" || detectedSubjectKey === "4+");
 
   // Step 1: User picks a file → go to crop stage
   const handleFile = (file: File) => {
@@ -77,7 +79,6 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
     setRawImage(file);
     setRawPreviewUrl(URL.createObjectURL(file));
     setResult(null);
-    setSubjectOverride(null);
     setError(null);
     setStage("crop");
   };
@@ -98,30 +99,42 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
   };
 
   // Step 3: Analyze the cropped image
-  const analyze = async (overrideSubject?: "1" | "2" | "3" | "4+") => {
+  const analyze = async (overrideSize?: string, overrideRush?: boolean) => {
     if (!image) return;
     setLoading(true);
     setError(null);
     try {
+      const sizeToUse = overrideSize ?? size;
       const formData = new FormData();
       formData.append("image", image);
-      formData.append("size", size);
-      formData.append("rush", String(isRush));
-      if (overrideSubject) formData.append("subjectOverride", overrideSubject);
+      formData.append("size", sizeToUse);
+      formData.append("rush", String(overrideRush ?? isRush));
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
-      setResult(data);
+
+      // Auto-upgrade to A3 if >2 subjects detected and current size is A4/A5
+      const detectedCount: number = data.detection?.subjectCount ?? 0;
+      if (detectedCount > 2 && (sizeToUse === "A4" || sizeToUse === "A5")) {
+        setSize("A3");
+        setSizeAutoUpgraded(true);
+        const fd2 = new FormData();
+        fd2.append("image", image);
+        fd2.append("size", "A3");
+        fd2.append("rush", String(overrideRush ?? isRush));
+        const res2 = await fetch("/api/analyze", { method: "POST", body: fd2 });
+        const data2 = await res2.json();
+        if (!res2.ok) throw new Error(data2.error || "Analysis failed");
+        setResult(data2);
+      } else {
+        setSizeAutoUpgraded(false);
+        setResult(data);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSubjectOverride = (s: "1" | "2" | "3" | "4+") => {
-    setSubjectOverride(s);
-    analyze(s);
   };
 
   const resetAll = () => {
@@ -131,7 +144,7 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
     setPreview(null);
     setResult(null);
     setError(null);
-    setSubjectOverride(null);
+    setSizeAutoUpgraded(false);
     setStage("upload");
   };
 
@@ -222,16 +235,32 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
         <div>
           <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Paper Size</label>
           <div className="grid grid-cols-4 gap-1">
-            {SIZES.map((s) => (
-              <button key={s} onClick={() => setSize(s)} className={optionBtn(size === s)}>{s}</button>
-            ))}
+            {SIZES.map((s) => {
+              const disabled = tooManyForSmall && (s === "A4" || s === "A5");
+              return (
+                <button
+                  key={s}
+                  disabled={disabled}
+                  onClick={() => { setSize(s); if (result) analyze(s); }}
+                  className={cn(optionBtn(size === s), disabled && "opacity-40 cursor-not-allowed")}
+                >
+                  {s}
+                </button>
+              );
+            })}
           </div>
+          {tooManyForSmall && (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3 shrink-0" />
+              A4 &amp; A5 unavailable for 3+ subjects{sizeAutoUpgraded && " · auto-upgraded to A3"}
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Delivery</label>
           <div className="grid grid-cols-2 gap-1">
             {[{ label: "Standard", value: false }, { label: "Rush +35%", value: true }].map((opt) => (
-              <button key={String(opt.value)} onClick={() => setIsRush(opt.value)}
+              <button key={String(opt.value)} onClick={() => { setIsRush(opt.value); if (result) analyze(undefined, opt.value); }}
                 className={optionBtn(isRush === opt.value)}>
                 {opt.label}
               </button>
@@ -299,46 +328,11 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
               </p>
             )}
 
-            {/* Subject count */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-xs text-[var(--text-muted)]">
-                  Subjects in sketch
-                  {subjectOverride === null && result.detection.subjectCount > 0 && (
-                    <span className="ml-1.5 text-green-600 dark:text-green-400 font-medium">
-                      · auto-detected: {result.detection.subjectCount}
-                    </span>
-                  )}
-                </p>
-                {subjectOverride !== null && (
-                  <button
-                    onClick={() => { setSubjectOverride(null); analyze(); }}
-                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1">
-                    <RefreshCw className="w-3 h-3" />Reset to AI
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-4 gap-1">
-                {SUBJECTS.map((s) => (
-                  <button key={s} onClick={() => handleSubjectOverride(s)}
-                    className={cn(
-                      optionBtn(effectiveSubject === s),
-                      subjectOverride === null && result.detection.subjectKey === s
-                        ? "ring-1 ring-offset-1 ring-green-500" : ""
-                    )}>
-                    {s}
-                    {subjectOverride === null && result.detection.subjectKey === s && (
-                      <span className="block text-[10px] leading-none mt-0.5 opacity-60">AI</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
-                {subjectOverride !== null
-                  ? "Using manual count. Click Reset to use AI."
-                  : "Green ring = AI detected. Click to override."}
+            {result.detection.subjectCount > 0 && (
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                {result.detection.subjectCount} foreground subject{result.detection.subjectCount > 1 ? "s" : ""} detected
               </p>
-            </div>
+            )}
           </div>
 
           {/* Complexity */}
@@ -373,7 +367,7 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
                 [`Base (${size})`, `${result.currency}${result.pricing.breakdown.base}`],
                 [`Complexity (${result.complexity.label})`, `×${result.pricing.breakdown.complexityMult}`],
                 ...(result.pricing.breakdown.subjectMult > 1
-                  ? [[`Subjects (${effectiveSubject})`, `×${result.pricing.breakdown.subjectMult}`]]
+                  ? [[`Subjects (${detectedSubjectKey})`, `×${result.pricing.breakdown.subjectMult}`]]
                   : []),
                 ...(isRush ? [["Rush fee", `×${result.pricing.breakdown.rushMult}`]] : []),
               ].map(([label, val]) => (
@@ -391,7 +385,7 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
           {showProceedButton && onProceed && (
             <div className="px-5 pb-5">
               <Button className="w-full" size="lg"
-                onClick={() => onProceed({ imageFile: image!, result, size, subjects: effectiveSubject, isRush })}>
+                onClick={() => onProceed({ imageFile: image!, result, size, subjects: detectedSubjectKey, isRush })}>
                 <CheckCircle2 className="w-4 h-4" />Proceed to Commission
               </Button>
             </div>

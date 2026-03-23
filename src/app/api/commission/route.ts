@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { analyzeComplexity, calculatePrice } from "@/lib/complexity";
 import type { SizeKey, SubjectKey } from "@/lib/complexity";
+import { saveOrder } from "@/lib/orderStore";
 
 export const maxDuration = 60;
 
@@ -38,8 +39,7 @@ export async function POST(req: NextRequest) {
       "sketch-artist/references"
     );
 
-    // In a real app, save to DB here. We'll return order summary.
-    const order = {
+    const order = await saveOrder({
       id: `ORD-${Date.now()}`,
       name,
       email,
@@ -55,11 +55,11 @@ export async function POST(req: NextRequest) {
       estimatedPrice: pricing.finalPrice,
       currency: "₹",
       submittedAt: new Date().toISOString(),
-    };
+    });
 
     // Try to send email notification (optional — won't fail the request)
     try {
-      await sendOrderEmail(order);
+      await sendOrderEmail(order as unknown as Record<string, unknown> & { id: string; name: string; email: string });
     } catch (emailErr) {
       console.warn("Email send failed (non-critical):", emailErr);
     }
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function sendOrderEmail(order: Record<string, unknown>) {
+async function sendOrderEmail(order: Record<string, unknown> & { id: string; name: string; email: string }) {
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
   const artistEmail = process.env.ARTIST_EMAIL;

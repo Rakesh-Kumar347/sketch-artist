@@ -18,7 +18,7 @@ export default function CommissionPage() {
       </div>
 
       {/* Info cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12 max-w-3xl mx-auto">
+      <div className="flex flex-row gap-2 sm:gap-4 mb-12 max-w-3xl mx-auto" style={{ display: "flex", flexDirection: "row" }}>
         {[
           { label: "Delivery Time", value: "7–21 days", sub: "Rush available" },
           { label: "Formats", value: "A5 to A2", sub: "Physical + scan" },
@@ -26,11 +26,11 @@ export default function CommissionPage() {
         ].map((item) => (
           <div
             key={item.label}
-            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center"
+            className="flex-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-2 sm:p-4 text-center"
           >
-            <p className="text-xs text-[var(--text-muted)] mb-1">{item.label}</p>
-            <p className="font-bold text-[var(--text)]">{item.value}</p>
-            <p className="text-xs text-[var(--text-muted)]">{item.sub}</p>
+            <p className="text-[10px] sm:text-xs text-[var(--text-muted)] mb-1">{item.label}</p>
+            <p className="text-xs sm:text-base font-bold text-[var(--text)]">{item.value}</p>
+            <p className="text-[10px] sm:text-xs text-[var(--text-muted)]">{item.sub}</p>
           </div>
         ))}
       </div>
