@@ -349,7 +349,7 @@ function OrderCard({
               ["Subjects", order.subjects],
               ["Complexity", order.complexity],
               ["Score", `${order.complexityScore}/100`],
-              ["Rush", order.isRush ? "Yes" : "No"],
+              ["Rush", order.isRush ? (order.rushDays ? `Yes — ${order.rushDays} days` : "Yes") : "No"],
               ["Price", `₹${order.estimatedPrice.toLocaleString()}`],
               ["Submitted", fmt(order.submittedAt)],
               ["Updated", fmt(order.updatedAt)],

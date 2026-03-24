@@ -10,6 +10,7 @@ export interface Order {
   size: string;
   subjects: string;
   isRush: boolean;
+  rushDays?: number;
   notes?: string;
   referenceUrl: string;
   referencePath: string;
@@ -32,6 +33,7 @@ function rowToOrder(r: Record<string, unknown>): Order {
     size:           r.size           as string,
     subjects:       r.subjects       as string,
     isRush:         r.is_rush        as boolean,
+    rushDays:       r.rush_days      as number | undefined,
     notes:          r.notes          as string | undefined,
     referenceUrl:   r.reference_url  as string,
     referencePath:  r.reference_path as string,
@@ -58,6 +60,7 @@ export async function saveOrder(
       size:             order.size,
       subjects:         order.subjects,
       is_rush:          order.isRush,
+      rush_days:        order.rushDays ?? null,
       notes:            order.notes ?? null,
       reference_url:    order.referenceUrl,
       reference_path:   order.referencePath,

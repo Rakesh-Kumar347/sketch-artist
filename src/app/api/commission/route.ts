@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     const size     = (formData.get("size")    as SizeKey)    || "A4";
     const subjects = (formData.get("subjects") as SubjectKey) || "1";
     const isRush   = formData.get("rush") === "true";
+    const rushDays = isRush ? Math.max(3, Number(formData.get("rushDays") || 3)) : undefined;
     const notes    = formData.get("notes")    as string;
     const file     = formData.get("image")    as File;
 
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
       size,
       subjects,
       isRush,
+      rushDays,
       notes,
       referenceUrl,
       referencePath,
