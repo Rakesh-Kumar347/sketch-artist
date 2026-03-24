@@ -25,6 +25,7 @@ export default function CommissionForm() {
     size: string;
     subjects: string;
     isRush: boolean;
+    rushDays: number;
   } | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -51,6 +52,7 @@ export default function CommissionForm() {
       formData.append("size", estimateData.size);
       formData.append("subjects", estimateData.subjects);
       formData.append("rush", String(estimateData.isRush));
+      if (estimateData.isRush) formData.append("rushDays", String(estimateData.rushDays));
       const res = await fetch("/api/commission", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Submission failed");
@@ -111,6 +113,7 @@ export default function CommissionForm() {
               </p>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">
                 {estimateData.size} · {estimateData.subjects} subject(s) · {estimateData.result.complexity.label}
+                {estimateData.isRush && ` · Rush (${estimateData.rushDays} days)`}
               </p>
             </div>
             <button onClick={() => setStep("estimate")}

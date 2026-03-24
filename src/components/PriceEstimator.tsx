@@ -45,6 +45,7 @@ interface Props {
     size: string;
     subjects: string;
     isRush: boolean;
+    rushDays: number;
   }) => void;
   showProceedButton?: boolean;
 }
@@ -61,6 +62,7 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
   const [stage, setStage] = useState<Stage>("upload");
   const [size, setSize] = useState<"A5" | "A4" | "A3" | "A2">("A4");
   const [isRush, setIsRush] = useState(false);
+  const [rushDays, setRushDays] = useState(3);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -302,6 +304,23 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
               </button>
             ))}
           </div>
+          {isRush && (
+            <div className="mt-2">
+              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">
+                Delivery in how many days? <span className="text-[var(--accent)]">(min. 3)</span>
+              </label>
+              <input
+                type="number"
+                min={3}
+                value={rushDays}
+                onChange={(e) => setRushDays(Math.max(3, Number(e.target.value)))}
+                className="w-full px-3 py-2 rounded-md border border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              />
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                Standard delivery is 7–21 days. Rush orders are prioritised.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -421,7 +440,7 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
           {showProceedButton && onProceed && (
             <div className="px-5 pb-5">
               <Button className="w-full" size="lg"
-                onClick={() => onProceed({ imageFile: image!, result, size, subjects: detectedSubjectKey, isRush })}>
+                onClick={() => onProceed({ imageFile: image!, result, size, subjects: detectedSubjectKey, isRush, rushDays })}>
                 <CheckCircle2 className="w-4 h-4" />Proceed to Commission
               </Button>
             </div>
