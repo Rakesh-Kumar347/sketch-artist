@@ -9,7 +9,7 @@ export const metadata = {
 export default function CommissionPage() {
   return (
     <div className="bg-[#080808] min-h-screen pt-16">
-      <div className="px-6 md:px-16 lg:px-24 py-20 max-w-7xl mx-auto">
+      <div className="px-6 md:px-16 lg:px-24 py-20 max-w-7xl mx-auto text-center">
         <p className="text-[#c9a96e] text-xs tracking-[0.5em] uppercase mb-4">Custom Work</p>
         <h1
           className="text-5xl md:text-7xl font-thin text-[#f0ece4] leading-tight mb-6"
@@ -18,13 +18,13 @@ export default function CommissionPage() {
           Commission<br />
           <span className="text-[#c9a96e]">a Portrait</span>
         </h1>
-        <p className="text-[#7a7570] text-sm mb-16 max-w-xl">
+        <p className="text-[#7a7570] text-sm mb-16 max-w-xl mx-auto">
           Upload your reference photo and get an instant price estimate based on image complexity.
           No commitment required until you confirm.
         </p>
 
         {/* Info cards */}
-        <div className="flex flex-row gap-3 mb-14 max-w-2xl">
+        <div className="flex flex-row gap-3 mb-14 max-w-2xl mx-auto">
           {[
             { label: "Delivery", value: "7–21 days", sub: "Rush available" },
             { label: "Formats",  value: "A5 to A2",   sub: "Physical + scan" },
