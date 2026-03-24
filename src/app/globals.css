@@ -1,29 +1,17 @@
 @import "tailwindcss";
 
-/* ── Light purple theme ── */
-:root {
-  --bg:          #f5f3ff;
-  --bg-subtle:   #ede9fe;
-  --bg-card:     #ffffff;
-  --border:      #ddd6fe;
-  --text:        #2e1065;
-  --text-muted:  #7c3aed;
-  --accent:      #7c3aed;
-  --accent-fg:   #ffffff;
-  --ring:        #7c3aed;
-}
-
-/* ── Dark purple theme ── */
+/* ── Dark gold theme (all pages) ── */
+:root,
 .dark {
-  --bg:          #0d0a1a;
-  --bg-subtle:   #13102b;
-  --bg-card:     #1a1535;
-  --border:      #2e2a52;
-  --text:        #ede9fe;
-  --text-muted:  #a78bfa;
-  --accent:      #7c3aed;
-  --accent-fg:   #ffffff;
-  --ring:        #7c3aed;
+  --bg:          #080808;
+  --bg-subtle:   #111010;
+  --bg-card:     #1a1917;
+  --border:      rgba(201,169,110,0.18);
+  --text:        #f0ece4;
+  --text-muted:  #7a7570;
+  --accent:      #c9a96e;
+  --accent-fg:   #080808;
+  --ring:        #c9a96e;
 }
 
 @theme inline {
@@ -51,19 +39,7 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ─── Portfolio Homepage Dark Theme ─────────────────────────── */
-:root {
-  --bg-primary: #080808;
-  --bg-secondary: #111010;
-  --surface: #1a1917;
-  --accent-gold: #c9a96e;
-  --accent-rose: #d4a5a5;
-  --text-primary: #f0ece4;
-  --text-muted: #7a7570;
-  --border-subtle: rgba(201,169,110,0.15);
-}
-
-/* Custom cursor hide on portfolio page */
+/* Portfolio-page cursor hide */
 .portfolio-page * { cursor: none !important; }
 
 /* Lenis smooth scroll */

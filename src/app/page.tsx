@@ -6,7 +6,6 @@ import About from "@/components/sections/About";
 import Process from "@/components/sections/Process";
 import CommissionSection from "@/components/sections/CommissionSection";
 import Testimonials from "@/components/sections/Testimonials";
-import PortfolioFooter from "@/components/sections/PortfolioFooter";
 
 export default function HomePage() {
   return (
@@ -19,7 +18,6 @@ export default function HomePage() {
       <Process />
       <CommissionSection />
       <Testimonials />
-      <PortfolioFooter />
     </div>
   );
 }
