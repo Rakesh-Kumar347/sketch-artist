@@ -155,7 +155,7 @@ export default function HeroCanvas() {
 
         <Sculpture mouseXRef={mouseXRef} mouseYRef={mouseYRef} />
 
-        <EffectComposer>
+        <EffectComposer multisampling={0}>
           <Bloom intensity={isMobile ? 0.5 : 1.2} luminanceThreshold={0.2} luminanceSmoothing={0.9} />
           <Vignette offset={0.3} darkness={0.8} blendFunction={BlendFunction.NORMAL} />
           <Noise opacity={0.04} blendFunction={BlendFunction.ADD} />
