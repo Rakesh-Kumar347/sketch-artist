@@ -39,8 +39,6 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* Portfolio-page cursor hide */
-.portfolio-page * { cursor: none !important; }
 
 /* Lenis smooth scroll */
 html.lenis, html.lenis body { height: auto; }
