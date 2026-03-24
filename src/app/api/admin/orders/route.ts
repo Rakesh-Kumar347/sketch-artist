@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAllOrders, updateOrderStatus } from "@/lib/orderStore";
 import type { OrderStatus } from "@/lib/orderStore";
 import { verifyToken } from "@/lib/supabase";
-import { orderAcceptedToCustomer, orderCompletedToCustomer } from "@/lib/mailer";
+import { orderAcceptedToCustomer, orderCancelledToCustomer, orderCompletedToCustomer } from "@/lib/mailer";
 
 async function isAuthed(req: NextRequest): Promise<boolean> {
   const token = req.headers.get("Authorization")?.replace("Bearer ", "");
@@ -38,6 +38,10 @@ export async function PATCH(req: NextRequest) {
   } else if (status === "completed") {
     orderCompletedToCustomer(updated).catch((e) =>
       console.warn("orderCompleted email error:", e)
+    );
+  } else if (status === "cancelled") {
+    orderCancelledToCustomer(updated).catch((e) =>
+      console.warn("orderCancelled email error:", e)
     );
   }
 

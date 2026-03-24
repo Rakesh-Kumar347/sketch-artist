@@ -71,7 +71,7 @@ function orderTable(order: Order): string {
     ${row("Paper Size", order.size)}
     ${row("Subjects", order.subjects)}
     ${row("Complexity", order.complexity.charAt(0).toUpperCase() + order.complexity.slice(1))}
-    ${row("Delivery", order.isRush ? "⚡ Rush" : "Standard")}
+    ${row("Delivery", order.isRush ? `⚡ Rush — ${order.rushDays ?? 3} days` : "Standard")}
     ${row("Est. Price", `<strong style="color:#7c3aed;">₹${order.estimatedPrice.toLocaleString("en-IN")}</strong>`)}
     ${order.notes ? row("Notes", order.notes) : ""}
   </table>`;
@@ -171,7 +171,40 @@ export async function orderAcceptedToCustomer(order: Order): Promise<void> {
   });
 }
 
-/** 4. Customer — order completed */
+/** 4. Customer — order cancelled */
+export async function orderCancelledToCustomer(order: Order): Promise<void> {
+  const t = getTransporter();
+  if (!t) return;
+
+  await t.sendMail({
+    from: `"Art From Heart" <${process.env.EMAIL_USER}>`,
+    to: order.email,
+    subject: `❌ Order Cancelled — ${order.id}`,
+    html: wrap(
+      "Order Cancelled",
+      `<h2 style="margin:0 0 4px;color:#2e1065;font-size:20px;">Order Cancelled</h2>
+       <p style="margin:0 0 20px;color:#6b7280;font-size:14px;">
+         Hi ${order.name}, unfortunately your commission order has been cancelled.
+         If you believe this is a mistake or would like to resubmit, please reach out to us.
+       </p>
+
+       ${orderTable(order)}
+
+       <div style="background:#fee2e2;border-left:4px solid #dc2626;padding:14px 16px;border-radius:0 8px 8px 0;margin:20px 0;">
+         <p style="margin:0;font-size:13px;color:#991b1b;">
+           If you have any questions about this cancellation, please reply to this email
+           and we'll get back to you as soon as possible.
+         </p>
+       </div>
+
+       <p style="margin:20px 0 0;font-size:13px;color:#6b7280;">
+         We're sorry for the inconvenience. You're welcome to submit a new commission request at any time.
+       </p>`
+    ),
+  });
+}
+
+/** 5. Customer — order completed */
 export async function orderCompletedToCustomer(order: Order): Promise<void> {
   const t = getTransporter();
   if (!t) return;

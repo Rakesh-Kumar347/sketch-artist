@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
     const notes    = formData.get("notes")    as string;
     const file     = formData.get("image")    as File;
 
-    if (!name || !email || !file) {
+    if (!name || !email || !phone || !file) {
       return NextResponse.json(
-        { error: "Name, email, and image are required" },
+        { error: "Name, email, phone, and image are required" },
         { status: 400 }
       );
     }

@@ -139,8 +139,8 @@ export default function CommissionForm() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Phone (optional)</label>
-              <input type="tel" value={form.phone}
+              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Phone *</label>
+              <input type="tel" required value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="+91 XXXXX XXXXX" className={inputCls} />
             </div>
