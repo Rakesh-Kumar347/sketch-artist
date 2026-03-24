@@ -3,8 +3,6 @@
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Environment } from "@react-three/drei";
-import { EffectComposer, Bloom, Vignette, Noise } from "@react-three/postprocessing";
-import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 
@@ -154,13 +152,18 @@ export default function HeroCanvas() {
         <Environment preset="night" />
 
         <Sculpture mouseXRef={mouseXRef} mouseYRef={mouseYRef} />
-
-        <EffectComposer multisampling={0}>
-          <Bloom intensity={isMobile ? 0.5 : 1.2} luminanceThreshold={0.2} luminanceSmoothing={0.9} />
-          <Vignette offset={0.3} darkness={0.8} blendFunction={BlendFunction.NORMAL} />
-          <Noise opacity={0.04} blendFunction={BlendFunction.ADD} />
-        </EffectComposer>
       </Canvas>
+
+      {/* Vignette overlay */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.75) 100%)",
+      }} />
+
+      {/* Noise overlay */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        backgroundSize: "128px 128px",
+      }} />
     </div>
   );
 }
