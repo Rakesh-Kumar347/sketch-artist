@@ -301,9 +301,12 @@ export default function CommissionForm() {
             }}>
               Submit Another
             </Button>
-            <Button asChild>
-              <Link href="/account">View My Orders</Link>
-            </Button>
+            <Link
+              href="/account"
+              className="inline-flex items-center justify-center px-4 py-2 bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-medium rounded-md hover:opacity-90 transition-opacity"
+            >
+              View My Orders
+            </Link>
           </div>
         </div>
       )}
