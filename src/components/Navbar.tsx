@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
   { href: "/portfolio",  label: "Portfolio" },
   { href: "/commission", label: "Commission" },
-  { href: "/orders",     label: "My Orders" },
   { href: "/about",      label: "About" },
   { href: "/contact",    label: "Contact" },
 ];
@@ -17,6 +17,8 @@ const navLinks = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, profile, signOut } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[rgba(8,8,8,0.85)] backdrop-blur-md border-b border-[rgba(201,169,110,0.12)]">
@@ -47,12 +49,42 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/commission"
-              className="px-5 py-2 border border-[rgba(201,169,110,0.4)] text-[#c9a96e] text-[10px] tracking-[0.3em] uppercase hover:bg-[#c9a96e] hover:text-[#080808] transition-all duration-300"
-            >
-              Order Now
-            </Link>
+
+            {user ? (
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/account"
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs tracking-[0.25em] uppercase transition-colors duration-300",
+                    pathname === "/account" ? "text-[#c9a96e]" : "text-[#7a7570] hover:text-[#f0ece4]"
+                  )}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  {profile?.name?.split(" ")[0] || "Account"}
+                </Link>
+                <button
+                  onClick={async () => { await signOut(); router.push("/"); }}
+                  className="text-[#7a7570] text-xs tracking-[0.25em] uppercase hover:text-[#f0ece4] transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/login"
+                  className="text-xs tracking-[0.25em] uppercase text-[#7a7570] hover:text-[#f0ece4] transition-colors duration-300"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/commission"
+                  className="px-5 py-2 border border-[rgba(201,169,110,0.4)] text-[#c9a96e] text-[10px] tracking-[0.3em] uppercase hover:bg-[#c9a96e] hover:text-[#080808] transition-all duration-300"
+                >
+                  Order Now
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -85,6 +117,28 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user ? (
+              <>
+                <Link href="/account" onClick={() => setOpen(false)} className="block py-3 text-xs tracking-[0.3em] uppercase border-b border-[rgba(201,169,110,0.08)] text-[#7a7570] hover:text-[#f0ece4] transition-colors">
+                  My Account
+                </Link>
+                <button
+                  onClick={async () => { setOpen(false); await signOut(); router.push("/"); }}
+                  className="block w-full text-left py-3 text-xs tracking-[0.3em] uppercase text-[#7a7570] hover:text-[#f0ece4] transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setOpen(false)} className="block py-3 text-xs tracking-[0.3em] uppercase border-b border-[rgba(201,169,110,0.08)] text-[#7a7570] hover:text-[#f0ece4] transition-colors">
+                  Sign In
+                </Link>
+                <Link href="/register" onClick={() => setOpen(false)} className="block py-3 text-xs tracking-[0.3em] uppercase text-[#c9a96e]">
+                  Create Account
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

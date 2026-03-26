@@ -5,6 +5,7 @@ import ThemeProvider from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ClientShell from "@/components/ClientShell";
+import { AuthProvider } from "@/context/AuthContext";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -53,11 +54,13 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col">
         <ThemeProvider>
-          <ClientShell>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </ClientShell>
+          <AuthProvider>
+            <ClientShell>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </ClientShell>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

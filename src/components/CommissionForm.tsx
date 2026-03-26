@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Loader2, CheckCircle2, AlertCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PriceEstimator from "@/components/PriceEstimator";
 import type { ComplexityResult, PriceBreakdown } from "@/lib/complexity";
+import { useAuth } from "@/context/AuthContext";
 
 interface AnalysisResult {
   complexity: ComplexityResult;
@@ -19,6 +20,7 @@ const inputCls =
 
 export default function CommissionForm() {
   const topRef = useRef<HTMLDivElement>(null);
+  const { profile } = useAuth();
   const [step, setStep] = useState<Step>("estimate");
   const [estimateData, setEstimateData] = useState<{
     imageFile: File;
@@ -29,6 +31,18 @@ export default function CommissionForm() {
     rushDays: number;
   } | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
+
+  // Pre-fill from profile when user is logged in
+  useEffect(() => {
+    if (profile) {
+      setForm((prev) => ({
+        ...prev,
+        name: profile.name || prev.name,
+        email: profile.email || prev.email,
+        phone: profile.phone || prev.phone,
+      }));
+    }
+  }, [profile]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
