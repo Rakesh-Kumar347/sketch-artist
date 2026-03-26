@@ -87,6 +87,17 @@ export async function getAllOrders(): Promise<Order[]> {
   return (data ?? []).map((r) => rowToOrder(r as Record<string, unknown>));
 }
 
+export async function getOrdersByEmail(email: string): Promise<Order[]> {
+  const { data, error } = await createAdminClient()
+    .from("orders")
+    .select("*")
+    .eq("email", email.toLowerCase().trim())
+    .order("submitted_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToOrder(r as Record<string, unknown>));
+}
+
 export async function updateOrderStatus(
   id: string,
   status: OrderStatus

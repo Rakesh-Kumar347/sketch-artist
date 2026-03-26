@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Loader2, CheckCircle2, AlertCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PriceEstimator from "@/components/PriceEstimator";
@@ -18,6 +18,7 @@ const inputCls =
   "w-full px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-colors";
 
 export default function CommissionForm() {
+  const topRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<Step>("estimate");
   const [estimateData, setEstimateData] = useState<{
     imageFile: File;
@@ -35,6 +36,9 @@ export default function CommissionForm() {
   const handleProceed = (data: typeof estimateData) => {
     setEstimateData(data);
     setStep("details");
+    setTimeout(() => {
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,7 +78,7 @@ export default function CommissionForm() {
   const currentStepIdx = steps.findIndex((s) => s.id === step);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div ref={topRef} className="max-w-2xl mx-auto" style={{ scrollMarginTop: "80px" }}>
       {/* Step progress */}
       <div className="flex items-center gap-3 mb-8">
         {steps.map((s, i) => (
@@ -98,8 +102,10 @@ export default function CommissionForm() {
         ))}
       </div>
 
-      {/* Step 1 */}
-      {step === "estimate" && <PriceEstimator onProceed={handleProceed} showProceedButton />}
+      {/* Step 1 — always mounted to preserve state */}
+      <div className={step === "estimate" ? "" : "hidden"}>
+        <PriceEstimator onProceed={handleProceed} showProceedButton />
+      </div>
 
       {/* Step 2 */}
       {step === "details" && estimateData && (

@@ -2,7 +2,7 @@
 
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Environment } from "@react-three/drei";
+import { Float } from "@react-three/drei";
 import * as THREE from "three";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 
@@ -145,12 +145,11 @@ export default function HeroCanvas() {
         camera={{ position: [0, 0, 5], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
         dpr={[1, isMobile ? 1.5 : 2]}
+        onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
       >
         <ambientLight intensity={0.1} />
         <pointLight position={[5, 5, 5]} color="#c9a96e" intensity={2} />
         <pointLight position={[-5, -3, -5]} color="#6e4fc9" intensity={1.5} />
-        <Environment preset="night" />
-
         <Sculpture mouseXRef={mouseXRef} mouseYRef={mouseYRef} />
       </Canvas>
 

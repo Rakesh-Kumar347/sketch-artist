@@ -9,9 +9,16 @@ export default function Preloader() {
   const topPanelRef = useRef<HTMLDivElement>(null);
   const bottomPanelRef = useRef<HTMLDivElement>(null);
   const [count, setCount] = useState(0);
+  const [skip, setSkip] = useState(false);
   const setPreloaderDone = useStore((s) => s.setPreloaderDone);
 
   useEffect(() => {
+    if (sessionStorage.getItem("preloaderSeen")) {
+      setSkip(true);
+      setPreloaderDone();
+      return;
+    }
+
     const ctx = gsap.context(() => {
       const counter = { val: 0 };
       gsap.to(counter, {
@@ -20,6 +27,7 @@ export default function Preloader() {
         ease: "power2.inOut",
         onUpdate: () => setCount(Math.round(counter.val)),
         onComplete: () => {
+          sessionStorage.setItem("preloaderSeen", "1");
           gsap.timeline()
             .to(topPanelRef.current, { y: "-100%", duration: 0.6, ease: "power3.in" })
             .to(bottomPanelRef.current, { y: "100%", duration: 0.6, ease: "power3.in" }, "<0.1")
@@ -35,6 +43,8 @@ export default function Preloader() {
 
     return () => ctx.revert();
   }, [setPreloaderDone]);
+
+  if (skip) return null;
 
   return (
     <div

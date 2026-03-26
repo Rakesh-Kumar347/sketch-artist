@@ -26,7 +26,7 @@ export const ARTWORKS: Artwork[] = [
     medium: "Digital Illustration",
     year: "2024",
     description: "Digital artwork exploring the peaceful intersection of human form and natural surroundings, blending hyperrealistic detail with painterly abstraction.",
-    image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=800&q=80",
+    image: "https://picsum.photos/seed/serenity/800/800",
     category: "Digital",
     price: "₹6,000",
   },

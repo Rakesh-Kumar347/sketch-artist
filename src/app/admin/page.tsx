@@ -156,7 +156,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   }, [token]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

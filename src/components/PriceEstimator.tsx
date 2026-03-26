@@ -60,7 +60,7 @@ export default function PriceEstimator({ onProceed, showProceedButton = false }:
   const [preview, setPreview] = useState<string | null>(null);
 
   const [stage, setStage] = useState<Stage>("upload");
-  const [size, setSize] = useState<"A5" | "A4" | "A3" | "A2">("A4");
+  const [size, setSize] = useState<"A5" | "A4" | "A3" | "A2">("A3");
   const [isRush, setIsRush] = useState(false);
   const [rushDays, setRushDays] = useState(3);
   const [loading, setLoading] = useState(false);
