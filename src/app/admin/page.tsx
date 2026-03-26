@@ -368,6 +368,17 @@ function OrderCard({
             </div>
           )}
 
+          {order.shippingAddress && (
+            <div className="bg-[var(--bg-subtle)] rounded-lg p-3">
+              <p className="text-xs text-[var(--text-muted)] mb-1">Shipping Address</p>
+              <p className="text-sm text-[var(--text)]">
+                {order.shippingAddress.line1}
+                {order.shippingAddress.line2 && `, ${order.shippingAddress.line2}`}
+                {`, ${order.shippingAddress.city}, ${order.shippingAddress.state} — ${order.shippingAddress.pincode}`}
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <a
               href={order.referenceUrl}

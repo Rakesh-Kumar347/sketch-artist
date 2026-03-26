@@ -66,6 +66,14 @@ function row(label: string, value: string): string {
 }
 
 function orderTable(order: Order): string {
+  const addr = order.shippingAddress
+    ? [
+        order.shippingAddress.line1,
+        order.shippingAddress.line2,
+        `${order.shippingAddress.city}, ${order.shippingAddress.state} — ${order.shippingAddress.pincode}`,
+      ].filter(Boolean).join(", ")
+    : null;
+
   return `<table cellpadding="0" cellspacing="0" style="width:100%;background:#f5f3ff;border-radius:10px;padding:16px;margin:16px 0;">
     ${row("Order ID", `<code style="background:#ede9fe;padding:2px 6px;border-radius:4px;font-size:12px;">${order.id}</code>`)}
     ${row("Paper Size", order.size)}
@@ -73,6 +81,7 @@ function orderTable(order: Order): string {
     ${row("Complexity", order.complexity.charAt(0).toUpperCase() + order.complexity.slice(1))}
     ${row("Delivery", order.isRush ? `⚡ Rush — ${order.rushDays ?? 3} days` : "Standard")}
     ${row("Est. Price", `<strong style="color:#7c3aed;">₹${order.estimatedPrice.toLocaleString("en-IN")}</strong>`)}
+    ${addr ? row("Ship To", addr) : ""}
     ${order.notes ? row("Notes", order.notes) : ""}
   </table>`;
 }

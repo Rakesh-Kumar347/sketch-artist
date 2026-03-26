@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Loader2, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import Link from "next/link";
+import { Loader2, CheckCircle2, AlertCircle, Send, Lock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PriceEstimator from "@/components/PriceEstimator";
 import type { ComplexityResult, PriceBreakdown } from "@/lib/complexity";
@@ -18,9 +19,14 @@ type Step = "estimate" | "details" | "success";
 const inputCls =
   "w-full px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-colors";
 
+const emptyForm = {
+  name: "", email: "", phone: "", notes: "",
+  addressLine1: "", addressLine2: "", city: "", state: "", pincode: "",
+};
+
 export default function CommissionForm() {
   const topRef = useRef<HTMLDivElement>(null);
-  const { profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [step, setStep] = useState<Step>("estimate");
   const [estimateData, setEstimateData] = useState<{
     imageFile: File;
@@ -30,7 +36,10 @@ export default function CommissionForm() {
     isRush: boolean;
     rushDays: number;
   } | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
+  const [form, setForm] = useState(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
   // Pre-fill from profile when user is logged in
   useEffect(() => {
@@ -43,9 +52,6 @@ export default function CommissionForm() {
       }));
     }
   }, [profile]);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
 
   const handleProceed = (data: typeof estimateData) => {
     setEstimateData(data);
@@ -71,6 +77,13 @@ export default function CommissionForm() {
       formData.append("subjects", estimateData.subjects);
       formData.append("rush", String(estimateData.isRush));
       if (estimateData.isRush) formData.append("rushDays", String(estimateData.rushDays));
+      formData.append("shippingAddress", JSON.stringify({
+        line1: form.addressLine1,
+        line2: form.addressLine2 || undefined,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+      }));
       const res = await fetch("/api/commission", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Submission failed");
@@ -83,14 +96,62 @@ export default function CommissionForm() {
     }
   };
 
+  const field = (key: keyof typeof emptyForm) => ({
+    value: form[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((prev) => ({ ...prev, [key]: e.target.value })),
+  });
+
   const steps = [
     { id: "estimate", label: "1. Estimate" },
-    { id: "details", label: "2. Details" },
-    { id: "success", label: "3. Done" },
+    { id: "details",  label: "2. Details"  },
+    { id: "success",  label: "3. Done"     },
   ];
-
   const currentStepIdx = steps.findIndex((s) => s.id === step);
 
+  // ─── Auth wall ─────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 text-[#c9a96e] animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto text-center py-16 border border-[rgba(201,169,110,0.15)] bg-[#0a0a0a]">
+        <div className="w-14 h-14 rounded-full border border-[rgba(201,169,110,0.3)] flex items-center justify-center mx-auto mb-6">
+          <Lock className="w-6 h-6 text-[#c9a96e]" />
+        </div>
+        <h2
+          className="text-2xl font-thin text-[#f0ece4] mb-3"
+          style={{ fontFamily: "var(--font-cormorant)", fontStyle: "italic" }}
+        >
+          Sign In to Commission
+        </h2>
+        <p className="text-[#7a7570] text-sm mb-8 leading-relaxed">
+          You need an account to place a commission order. Sign in or create a free account to continue.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            href="/login?redirect=/commission"
+            className="px-8 py-3 bg-[#c9a96e] text-[#080808] text-xs tracking-[0.25em] uppercase font-medium hover:bg-[#d4b87a] transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/register?redirect=/commission"
+            className="px-8 py-3 border border-[rgba(201,169,110,0.4)] text-[#c9a96e] text-xs tracking-[0.25em] uppercase hover:border-[#c9a96e] transition-colors"
+          >
+            Create Account
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Form ──────────────────────────────────────────────────────────────────
   return (
     <div ref={topRef} className="max-w-2xl mx-auto" style={{ scrollMarginTop: "80px" }}>
       {/* Step progress */}
@@ -99,9 +160,7 @@ export default function CommissionForm() {
           <div key={s.id} className="flex items-center gap-3 flex-1 last:flex-none">
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                i < currentStepIdx ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                : i === currentStepIdx ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                : "bg-[var(--border)] text-[var(--text-muted)]"
+                i <= currentStepIdx ? "bg-[var(--accent)] text-[var(--accent-fg)]" : "bg-[var(--border)] text-[var(--text-muted)]"
               }`}>
                 {i < currentStepIdx ? "✓" : i + 1}
               </div>
@@ -136,41 +195,70 @@ export default function CommissionForm() {
                 {estimateData.isRush && ` · Rush (${estimateData.rushDays} days)`}
               </p>
             </div>
-            <button onClick={() => setStep("estimate")}
-              className="text-xs text-[var(--text-muted)] underline hover:text-[var(--text)]">
+            <button onClick={() => setStep("estimate")} className="text-xs text-[var(--text-muted)] underline hover:text-[var(--text)]">
               Change
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Personal details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Full Name *</label>
-                <input type="text" required value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Your name" className={inputCls} />
+                <input type="text" required placeholder="Your name" className={inputCls} {...field("name")} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Email *</label>
-                <input type="email" required value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="you@example.com" className={inputCls} />
+                <input type="email" required placeholder="you@example.com" className={inputCls} {...field("email")} />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Phone *</label>
-              <input type="tel" required value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="+91 XXXXX XXXXX" className={inputCls} />
+              <input type="tel" required placeholder="+91 XXXXX XXXXX" className={inputCls} {...field("phone")} />
             </div>
 
+            {/* Shipping address */}
+            <div className="pt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">Shipping Address</span>
+              </div>
+              <div className="space-y-3 pl-0">
+                <div>
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Address Line 1 *</label>
+                  <input type="text" required placeholder="House / Flat no., Street name" className={inputCls} {...field("addressLine1")} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Address Line 2</label>
+                  <input type="text" placeholder="Landmark, Area (optional)" className={inputCls} {...field("addressLine2")} />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">City *</label>
+                    <input type="text" required placeholder="City" className={inputCls} {...field("city")} />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">State *</label>
+                    <input type="text" required placeholder="State" className={inputCls} {...field("state")} />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Pincode *</label>
+                    <input type="text" required placeholder="000000" maxLength={6} className={inputCls} {...field("pincode")} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
             <div>
               <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Special Instructions</label>
-              <textarea value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              <textarea
                 placeholder="Any specific requirements, style preferences, or notes..."
-                rows={4} className={`${inputCls} resize-none`} />
+                rows={3}
+                className={`${inputCls} resize-none`}
+                {...field("notes")}
+              />
             </div>
 
             {error && (
@@ -206,12 +294,17 @@ export default function CommissionForm() {
               Order ID: <span className="font-mono font-medium text-[var(--text)]">{orderId}</span>
             </p>
           )}
-          <Button className="mt-8" onClick={() => {
-            setStep("estimate"); setEstimateData(null);
-            setForm({ name: "", email: "", phone: "", notes: "" }); setOrderId(null);
-          }}>
-            Submit Another
-          </Button>
+          <div className="flex gap-3 justify-center mt-8">
+            <Button variant="outline" onClick={() => {
+              setStep("estimate"); setEstimateData(null);
+              setForm(emptyForm); setOrderId(null);
+            }}>
+              Submit Another
+            </Button>
+            <Button asChild>
+              <Link href="/account">View My Orders</Link>
+            </Button>
+          </div>
         </div>
       )}
     </div>

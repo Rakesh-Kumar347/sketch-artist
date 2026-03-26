@@ -2,6 +2,14 @@ import { createAdminClient } from "@/lib/supabase";
 
 export type OrderStatus = "pending" | "in_progress" | "completed" | "cancelled";
 
+export interface ShippingAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
 export interface Order {
   id: string;
   name: string;
@@ -12,6 +20,7 @@ export interface Order {
   isRush: boolean;
   rushDays?: number;
   notes?: string;
+  shippingAddress?: ShippingAddress;
   referenceUrl: string;
   referencePath: string;
   complexity: string;
@@ -35,6 +44,7 @@ function rowToOrder(r: Record<string, unknown>): Order {
     isRush:         r.is_rush        as boolean,
     rushDays:       r.rush_days      as number | undefined,
     notes:          r.notes          as string | undefined,
+    shippingAddress: r.shipping_address as ShippingAddress | undefined,
     referenceUrl:   r.reference_url  as string,
     referencePath:  r.reference_path as string,
     complexity:     r.complexity     as string,
@@ -62,6 +72,7 @@ export async function saveOrder(
       is_rush:          order.isRush,
       rush_days:        order.rushDays ?? null,
       notes:            order.notes ?? null,
+      shipping_address: order.shippingAddress ?? null,
       reference_url:    order.referenceUrl,
       reference_path:   order.referencePath,
       complexity:       order.complexity,

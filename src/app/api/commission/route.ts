@@ -11,15 +11,17 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
 
-    const name     = formData.get("name")     as string;
-    const email    = formData.get("email")    as string;
-    const phone    = formData.get("phone")    as string;
-    const size     = (formData.get("size")    as SizeKey)    || "A4";
-    const subjects = (formData.get("subjects") as SubjectKey) || "1";
-    const isRush   = formData.get("rush") === "true";
-    const rushDays = isRush ? Math.max(3, Number(formData.get("rushDays") || 3)) : undefined;
-    const notes    = formData.get("notes")    as string;
-    const file     = formData.get("image")    as File;
+    const name            = formData.get("name")            as string;
+    const email           = formData.get("email")           as string;
+    const phone           = formData.get("phone")           as string;
+    const size            = (formData.get("size")           as SizeKey)    || "A4";
+    const subjects        = (formData.get("subjects")       as SubjectKey) || "1";
+    const isRush          = formData.get("rush") === "true";
+    const rushDays        = isRush ? Math.max(3, Number(formData.get("rushDays") || 3)) : undefined;
+    const notes           = formData.get("notes")           as string;
+    const file            = formData.get("image")           as File;
+    const shippingRaw     = formData.get("shippingAddress") as string | null;
+    const shippingAddress = shippingRaw ? JSON.parse(shippingRaw) : undefined;
 
     if (!name || !email || !phone || !file) {
       return NextResponse.json(
@@ -47,6 +49,7 @@ export async function POST(req: NextRequest) {
       isRush,
       rushDays,
       notes,
+      shippingAddress,
       referenceUrl,
       referencePath,
       complexity: complexity.level,

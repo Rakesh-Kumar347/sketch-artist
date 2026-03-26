@@ -32,7 +32,8 @@ export default function RegisterPage() {
       setLoading(false);
     } else {
       setSuccess(true);
-      setTimeout(() => router.push("/account"), 2000);
+      const params = new URLSearchParams(window.location.search);
+      setTimeout(() => router.push(params.get("redirect") || "/account"), 2000);
     }
   };
 

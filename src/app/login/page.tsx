@@ -23,7 +23,8 @@ export default function LoginPage() {
       setError(err);
       setLoading(false);
     } else {
-      router.push("/account");
+      const params = new URLSearchParams(window.location.search);
+      router.push(params.get("redirect") || "/account");
     }
   };
 
