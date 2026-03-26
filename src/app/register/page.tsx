@@ -72,7 +72,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="text" required value={form.name} onChange={set("name")} placeholder="Full name" className={inputCls} />
           <input type="email" required value={form.email} onChange={set("email")} placeholder="Email address" className={inputCls} />
-          <input type="tel" value={form.phone} onChange={set("phone")} placeholder="Phone number (optional)" className={inputCls} />
+          <input type="tel" required value={form.phone} onChange={set("phone")} placeholder="Phone number" className={inputCls} />
           <input type="password" required value={form.password} onChange={set("password")} placeholder="Password (min 6 characters)" className={inputCls} />
           <input type="password" required value={form.confirm} onChange={set("confirm")} placeholder="Confirm password" className={inputCls} />
 
