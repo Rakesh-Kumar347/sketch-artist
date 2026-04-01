@@ -353,17 +353,10 @@ export default function AccountPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
 
-  // Hard timeout — if auth/profile hasn't resolved in 5 s, stop spinning
-  const [timedOut, setTimedOut] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setTimedOut(true), 5000);
-    return () => clearTimeout(t);
-  }, []); // runs once on mount, never re-clears
-
   // Redirect if not logged in
   useEffect(() => {
-    if ((!loading || timedOut) && !user) router.push("/login");
-  }, [user, loading, timedOut, router]);
+    if (!loading && !user) router.push("/login");
+  }, [user, loading, router]);
 
   // Load addresses when profile tab is active
   useEffect(() => {
@@ -436,29 +429,10 @@ export default function AccountPage() {
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "cancelled" as OrderStatus } : o));
   };
 
-  // Still loading and haven't timed out yet — show spinner
-  if ((loading || (user && !profile)) && !timedOut) {
+  if (loading || !user || !profile) {
     return (
       <div className="bg-[#080808] min-h-screen pt-16 flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-[#c9a96e] animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) return null; // redirect handled by useEffect above
-
-  // Auth resolved but profile is missing — show error
-  if (!profile) {
-    return (
-      <div className="bg-[#080808] min-h-screen pt-16 flex flex-col items-center justify-center gap-4">
-        <AlertCircle className="w-8 h-8 text-red-400" />
-        <p className="text-[#f0ece4] text-sm">Failed to load your profile. Please try signing out and back in.</p>
-        <button
-          onClick={async () => { await signOut(); router.push("/login"); }}
-          className="text-[#c9a96e] text-xs tracking-[0.2em] uppercase border border-[rgba(201,169,110,0.3)] px-4 py-2 hover:border-[rgba(201,169,110,0.6)] transition-colors"
-        >
-          Sign Out
-        </button>
       </div>
     );
   }

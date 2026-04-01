@@ -69,11 +69,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setProfile(await fetchProfile(session.user.id));
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        // Set a provisional profile from auth metadata immediately so the
+        // account page never stalls waiting for the DB round-trip.
+        setProfile({
+          id: u.id,
+          name: u.user_metadata?.name ?? "",
+          email: u.email ?? "",
+          phone: u.user_metadata?.phone ?? undefined,
+        });
       }
-      setLoading(false);
+      setLoading(false); // unblock the UI before the DB fetch
+      if (u) {
+        const full = await fetchProfile(u.id);
+        if (full) setProfile(full);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -83,9 +95,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         return;
       }
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setProfile(await fetchProfile(session.user.id));
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        // Provisional profile so the account page renders immediately.
+        setProfile((prev) => prev ?? {
+          id: u.id,
+          name: u.user_metadata?.name ?? "",
+          email: u.email ?? "",
+          phone: u.user_metadata?.phone ?? undefined,
+        });
+        const full = await fetchProfile(u.id);
+        if (full) setProfile(full);
       } else {
         setProfile(null);
       }
