@@ -63,54 +63,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (error?.message?.toLowerCase().includes("refresh token")) {
-        await supabase.auth.signOut();
-        setLoading(false);
-        return;
-      }
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        // Set a provisional profile from auth metadata immediately so the
-        // account page never stalls waiting for the DB round-trip.
-        setProfile({
-          id: u.id,
-          name: u.user_metadata?.name ?? "",
-          email: u.email ?? "",
-          phone: u.user_metadata?.phone ?? undefined,
-        });
-      }
-      setLoading(false); // unblock the UI before the DB fetch
-      if (u) {
-        const full = await fetchProfile(u.id);
-        if (full) setProfile(full);
-      }
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        // Handle failed token refresh
+        if (event === "TOKEN_REFRESHED" && !session) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "TOKEN_REFRESHED" && !session) {
-        await supabase.auth.signOut();
-        setUser(null);
-        setProfile(null);
-        return;
+        const u = session?.user ?? null;
+        setUser(u);
+
+        if (u) {
+          // Set provisional profile from auth metadata immediately so the
+          // account page never stalls waiting for the DB round-trip.
+          setProfile({
+            id: u.id,
+            name: u.user_metadata?.name ?? "",
+            email: u.email ?? "",
+            phone: u.user_metadata?.phone ?? undefined,
+          });
+        } else {
+          setProfile(null);
+        }
+
+        // INITIAL_SESSION fires on every page load with the current session
+        // (or null). Unblock the UI here so loading is always resolved.
+        if (event === "INITIAL_SESSION") {
+          setLoading(false);
+        }
+
+        // Fetch full profile from DB after unblocking the UI
+        if (u) {
+          const full = await fetchProfile(u.id);
+          if (full) setProfile(full);
+        }
       }
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        // Provisional profile so the account page renders immediately.
-        setProfile((prev) => prev ?? {
-          id: u.id,
-          name: u.user_metadata?.name ?? "",
-          email: u.email ?? "",
-          phone: u.user_metadata?.phone ?? undefined,
-        });
-        const full = await fetchProfile(u.id);
-        if (full) setProfile(full);
-      } else {
-        setProfile(null);
-      }
-    });
+    );
 
     return () => subscription.unsubscribe();
   }, []);
