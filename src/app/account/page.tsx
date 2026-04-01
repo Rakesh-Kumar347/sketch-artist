@@ -358,6 +358,26 @@ export default function AccountPage() {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
+  // Profile-level loading / error
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user && !profile && !profileLoading && !profileError) {
+      setProfileLoading(true);
+      // give AuthContext a moment to populate profile; if still null, surface error
+      const timer = setTimeout(() => {
+        setProfileLoading(false);
+        setProfileError(true);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+    if (profile) {
+      setProfileLoading(false);
+      setProfileError(false);
+    }
+  }, [loading, user, profile, profileLoading, profileError]);
+
   // Load addresses when profile tab is active
   useEffect(() => {
     if (!loading && user && tab === "profile" && addresses.length === 0) {
@@ -429,10 +449,27 @@ export default function AccountPage() {
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "cancelled" as OrderStatus } : o));
   };
 
-  if (loading || !user || !profile) {
+  if (loading || (user && !profile && !profileError)) {
     return (
       <div className="bg-[#080808] min-h-screen pt-16 flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-[#c9a96e] animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) return null; // redirect handled by useEffect above
+
+  if (profileError || !profile) {
+    return (
+      <div className="bg-[#080808] min-h-screen pt-16 flex flex-col items-center justify-center gap-4">
+        <AlertCircle className="w-8 h-8 text-red-400" />
+        <p className="text-[#f0ece4] text-sm">Failed to load your profile. Please try signing out and back in.</p>
+        <button
+          onClick={async () => { await signOut(); router.push("/login"); }}
+          className="text-[#c9a96e] text-xs tracking-[0.2em] uppercase border border-[rgba(201,169,110,0.3)] px-4 py-2 hover:border-[rgba(201,169,110,0.6)] transition-colors"
+        >
+          Sign Out
+        </button>
       </div>
     );
   }
