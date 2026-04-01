@@ -353,30 +353,17 @@ export default function AccountPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
 
+  // Hard timeout — if auth/profile hasn't resolved in 5 s, stop spinning
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 5000);
+    return () => clearTimeout(t);
+  }, []); // runs once on mount, never re-clears
+
   // Redirect if not logged in
   useEffect(() => {
-    if (!loading && !user) router.push("/login");
-  }, [user, loading, router]);
-
-  // Profile-level loading / error
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [profileError, setProfileError] = useState(false);
-
-  useEffect(() => {
-    if (!loading && user && !profile && !profileLoading && !profileError) {
-      setProfileLoading(true);
-      // give AuthContext a moment to populate profile; if still null, surface error
-      const timer = setTimeout(() => {
-        setProfileLoading(false);
-        setProfileError(true);
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-    if (profile) {
-      setProfileLoading(false);
-      setProfileError(false);
-    }
-  }, [loading, user, profile, profileLoading, profileError]);
+    if ((!loading || timedOut) && !user) router.push("/login");
+  }, [user, loading, timedOut, router]);
 
   // Load addresses when profile tab is active
   useEffect(() => {
@@ -449,7 +436,8 @@ export default function AccountPage() {
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "cancelled" as OrderStatus } : o));
   };
 
-  if (loading || (user && !profile && !profileError)) {
+  // Still loading and haven't timed out yet — show spinner
+  if ((loading || (user && !profile)) && !timedOut) {
     return (
       <div className="bg-[#080808] min-h-screen pt-16 flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-[#c9a96e] animate-spin" />
@@ -459,7 +447,8 @@ export default function AccountPage() {
 
   if (!user) return null; // redirect handled by useEffect above
 
-  if (profileError || !profile) {
+  // Auth resolved but profile is missing — show error
+  if (!profile) {
     return (
       <div className="bg-[#080808] min-h-screen pt-16 flex flex-col items-center justify-center gap-4">
         <AlertCircle className="w-8 h-8 text-red-400" />
