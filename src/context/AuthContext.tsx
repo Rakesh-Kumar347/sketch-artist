@@ -90,11 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
         }
 
-        // INITIAL_SESSION fires on every page load with the current session
-        // (or null). Unblock the UI here so loading is always resolved.
-        if (event === "INITIAL_SESSION") {
-          setLoading(false);
-        }
+        // Unblock the UI on every event — once any auth event fires we know
+        // the current state. Waiting only for INITIAL_SESSION is fragile
+        // because Supabase emits it only after an async token-refresh check.
+        setLoading(false);
 
         // Fetch full profile from DB after unblocking the UI
         if (u) {
