@@ -11,6 +11,13 @@ export interface Profile {
   phone?: string;
 }
 
+export interface SavedAddress {
+  id: string;
+  label: string;
+  address: string;
+  created_at: string;
+}
+
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
@@ -20,6 +27,11 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Pick<Profile, "name" | "phone">>) => Promise<string | null>;
   refreshProfile: () => Promise<void>;
+  resetPassword: (email: string) => Promise<string | null>;
+  fetchAddresses: () => Promise<SavedAddress[]>;
+  addAddress: (label: string, address: string) => Promise<string | null>;
+  updateAddress: (id: string, label: string, address: string) => Promise<string | null>;
+  deleteAddress: (id: string) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -51,7 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error?.message?.toLowerCase().includes("refresh token")) {
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
         setProfile(await fetchProfile(session.user.id));
@@ -59,7 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "TOKEN_REFRESHED" && !session) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        return;
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
         setProfile(await fetchProfile(session.user.id));
@@ -89,6 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const resetPassword = async (email: string): Promise<string | null> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/account`,
+    });
+    return error ? error.message : null;
+  };
+
   const updateProfile = async (data: Partial<Pick<Profile, "name" | "phone">>): Promise<string | null> => {
     if (!user) return "Not authenticated";
     const { error } = await supabase
@@ -105,8 +135,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(await fetchProfile(user.id));
   };
 
+  const fetchAddresses = async (): Promise<SavedAddress[]> => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("user_addresses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+    if (error || !data) return [];
+    return data as SavedAddress[];
+  };
+
+  const addAddress = async (label: string, address: string): Promise<string | null> => {
+    if (!user) return "Not authenticated";
+    const { error } = await supabase
+      .from("user_addresses")
+      .insert({ user_id: user.id, label, address });
+    return error ? error.message : null;
+  };
+
+  const updateAddress = async (id: string, label: string, address: string): Promise<string | null> => {
+    if (!user) return "Not authenticated";
+    const { error } = await supabase
+      .from("user_addresses")
+      .update({ label, address })
+      .eq("id", id)
+      .eq("user_id", user.id);
+    return error ? error.message : null;
+  };
+
+  const deleteAddress = async (id: string): Promise<string | null> => {
+    if (!user) return "Not authenticated";
+    const { error } = await supabase
+      .from("user_addresses")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+    return error ? error.message : null;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, updateProfile, refreshProfile }}>
+    <AuthContext.Provider value={{
+      user, profile, loading,
+      signIn, signUp, signOut,
+      updateProfile, refreshProfile, resetPassword,
+      fetchAddresses, addAddress, updateAddress, deleteAddress,
+    }}>
       {children}
     </AuthContext.Provider>
   );

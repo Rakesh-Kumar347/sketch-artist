@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   User, ShoppingBag, Edit3, Save, X, Loader2, AlertCircle,
-  CheckCircle2, Clock, Brush, Ban, XCircle,
+  CheckCircle2, Clock, Brush, Ban, XCircle, MapPin, Plus, Trash2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import type { SavedAddress } from "@/context/AuthContext";
 import type { Order, OrderStatus } from "@/lib/orderStore";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -114,12 +115,224 @@ function OrderCard({ order, onCancelled }: { order: Order; onCancelled: (id: str
   );
 }
 
+// ─── Address card ─────────────────────────────────────────────────────────────
+
+function AddressCard({
+  addr,
+  onSave,
+  onDelete,
+}: {
+  addr: SavedAddress;
+  onSave: (id: string, label: string, address: string) => Promise<string | null>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editLabel, setEditLabel] = useState(addr.label);
+  const [editAddress, setEditAddress] = useState(addr.address);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const inputCls = "w-full bg-[#080808] border border-[rgba(201,169,110,0.2)] text-[#f0ece4] placeholder:text-[#7a7570] px-3 py-2.5 text-sm focus:outline-none focus:border-[#c9a96e] transition-colors";
+
+  const handleSave = async () => {
+    if (!editLabel.trim() || !editAddress.trim()) {
+      setErr("Both label and address are required.");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    const error = await onSave(addr.id, editLabel.trim(), editAddress.trim());
+    if (error) {
+      setErr(error);
+    } else {
+      setEditing(false);
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete address "${addr.label}"?`)) return;
+    setDeleting(true);
+    await onDelete(addr.id);
+  };
+
+  if (editing) {
+    return (
+      <div className="border border-[#c9a96e]/30 bg-[#0f0f0f] p-4 space-y-3">
+        <div>
+          <label className="block text-[10px] text-[#7a7570] tracking-[0.3em] uppercase mb-1.5">Label</label>
+          <input
+            type="text"
+            value={editLabel}
+            onChange={(e) => setEditLabel(e.target.value)}
+            placeholder="Home, Office, etc."
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] text-[#7a7570] tracking-[0.3em] uppercase mb-1.5">Address</label>
+          <textarea
+            value={editAddress}
+            onChange={(e) => setEditAddress(e.target.value)}
+            placeholder="House/Flat No., Street, City, State, PIN"
+            rows={3}
+            className={`${inputCls} resize-none`}
+          />
+        </div>
+        {err && (
+          <div className="flex items-center gap-2 text-red-400 text-xs bg-red-400/10 border border-red-400/20 px-3 py-2">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />{err}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#c9a96e] text-[#080808] text-[10px] tracking-[0.2em] uppercase font-medium hover:bg-[#d4b87a] transition-colors disabled:opacity-60"
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            {saving ? "Saving..." : "Save"}
+          </button>
+          <button
+            onClick={() => { setEditing(false); setEditLabel(addr.label); setEditAddress(addr.address); setErr(null); }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 border border-[rgba(201,169,110,0.2)] text-[#7a7570] text-[10px] tracking-[0.2em] uppercase hover:text-[#f0ece4] transition-colors"
+          >
+            <X className="w-3 h-3" />Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[rgba(201,169,110,0.12)] bg-[#0f0f0f] p-4 hover:border-[rgba(201,169,110,0.25)] transition-colors">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <MapPin className="w-4 h-4 text-[#c9a96e] mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[#c9a96e] text-[10px] tracking-[0.25em] uppercase mb-1">{addr.label}</p>
+            <p className="text-[#f0ece4] text-sm font-light whitespace-pre-line leading-relaxed">{addr.address}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => { setEditing(true); setErr(null); }}
+            className="text-[#7a7570] hover:text-[#c9a96e] transition-colors"
+            title="Edit"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-[#7a7570] hover:text-red-400 transition-colors disabled:opacity-40"
+            title="Delete"
+          >
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add address form ─────────────────────────────────────────────────────────
+
+function AddAddressForm({ onAdd }: { onAdd: (label: string, address: string) => Promise<string | null> }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [address, setAddress] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const inputCls = "w-full bg-[#0f0f0f] border border-[rgba(201,169,110,0.2)] text-[#f0ece4] placeholder:text-[#7a7570] px-3 py-2.5 text-sm focus:outline-none focus:border-[#c9a96e] transition-colors";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!label.trim() || !address.trim()) {
+      setErr("Both label and address are required.");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    const error = await onAdd(label.trim(), address.trim());
+    if (error) {
+      setErr(error);
+    } else {
+      setLabel("");
+      setAddress("");
+      setOpen(false);
+    }
+    setSaving(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[rgba(201,169,110,0.25)] text-[#7a7570] text-xs tracking-[0.2em] uppercase hover:border-[rgba(201,169,110,0.5)] hover:text-[#c9a96e] transition-colors"
+      >
+        <Plus className="w-3.5 h-3.5" />Add New Address
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="border border-[#c9a96e]/30 bg-[#0f0f0f] p-4 space-y-3">
+      <p className="text-[#f0ece4] text-xs tracking-[0.2em] uppercase mb-1">New Address</p>
+      <div>
+        <label className="block text-[10px] text-[#7a7570] tracking-[0.3em] uppercase mb-1.5">Label</label>
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Home, Office, Parents' house…"
+          className={inputCls}
+        />
+      </div>
+      <div>
+        <label className="block text-[10px] text-[#7a7570] tracking-[0.3em] uppercase mb-1.5">Address</label>
+        <textarea
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="House/Flat No., Street, City, State, PIN"
+          rows={3}
+          className={`${inputCls} resize-none`}
+        />
+      </div>
+      {err && (
+        <div className="flex items-center gap-2 text-red-400 text-xs bg-red-400/10 border border-red-400/20 px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />{err}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#c9a96e] text-[#080808] text-[10px] tracking-[0.2em] uppercase font-medium hover:bg-[#d4b87a] transition-colors disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+          {saving ? "Saving..." : "Save Address"}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setLabel(""); setAddress(""); setErr(null); }}
+          className="inline-flex items-center gap-1.5 px-4 py-2 border border-[rgba(201,169,110,0.2)] text-[#7a7570] text-[10px] tracking-[0.2em] uppercase hover:text-[#f0ece4] transition-colors"
+        >
+          <X className="w-3 h-3" />Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Main account page ────────────────────────────────────────────────────────
 
 type Tab = "profile" | "orders";
 
 export default function AccountPage() {
-  const { user, profile, loading, signOut, updateProfile } = useAuth();
+  const { user, profile, loading, signOut, updateProfile, fetchAddresses, addAddress, updateAddress, deleteAddress } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("profile");
 
@@ -131,6 +344,10 @@ export default function AccountPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Addresses state
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+
   // Orders state
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -140,6 +357,17 @@ export default function AccountPage() {
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
+
+  // Load addresses when profile tab is active
+  useEffect(() => {
+    if (!loading && user && tab === "profile" && addresses.length === 0) {
+      setAddressesLoading(true);
+      fetchAddresses().then((data) => {
+        setAddresses(data);
+        setAddressesLoading(false);
+      });
+    }
+  }, [tab, loading, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch orders when tab switches to orders
   useEffect(() => {
@@ -173,6 +401,28 @@ export default function AccountPage() {
       setTimeout(() => setSaveSuccess(false), 3000);
     }
     setSaving(false);
+  };
+
+  const handleAddAddress = async (label: string, address: string) => {
+    const err = await addAddress(label, address);
+    if (!err) {
+      const updated = await fetchAddresses();
+      setAddresses(updated);
+    }
+    return err;
+  };
+
+  const handleUpdateAddress = async (id: string, label: string, address: string) => {
+    const err = await updateAddress(id, label, address);
+    if (!err) {
+      setAddresses((prev) => prev.map((a) => a.id === id ? { ...a, label, address } : a));
+    }
+    return err;
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    await deleteAddress(id);
+    setAddresses((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleCancelled = (id: string) => {
@@ -235,6 +485,7 @@ export default function AccountPage() {
         {/* Profile tab */}
         {tab === "profile" && (
           <div className="space-y-6">
+            {/* Personal Information */}
             <div className="border border-[rgba(201,169,110,0.12)] bg-[#0f0f0f] p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-[#f0ece4] text-sm tracking-[0.2em] uppercase">Personal Information</h2>
@@ -305,6 +556,32 @@ export default function AccountPage() {
                       <p className="text-[#f0ece4] font-light">{value}</p>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Saved Addresses */}
+            <div className="border border-[rgba(201,169,110,0.12)] bg-[#0f0f0f] p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <MapPin className="w-4 h-4 text-[#c9a96e]" />
+                <h2 className="text-[#f0ece4] text-sm tracking-[0.2em] uppercase">Saved Addresses</h2>
+              </div>
+
+              {addressesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-4 h-4 text-[#c9a96e] animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {addresses.map((addr) => (
+                    <AddressCard
+                      key={addr.id}
+                      addr={addr}
+                      onSave={handleUpdateAddress}
+                      onDelete={handleDeleteAddress}
+                    />
+                  ))}
+                  <AddAddressForm onAdd={handleAddAddress} />
                 </div>
               )}
             </div>

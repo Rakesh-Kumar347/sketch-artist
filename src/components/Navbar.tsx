@@ -62,12 +62,12 @@ export default function Navbar() {
                   <User className="w-3.5 h-3.5" />
                   {profile?.name?.split(" ")[0] || "Account"}
                 </Link>
-                <button
+                {/* <button
                   onClick={async () => { await signOut(); router.push("/"); }}
                   className="text-[#7a7570] text-xs tracking-[0.25em] uppercase hover:text-[#f0ece4] transition-colors"
                 >
                   Sign Out
-                </button>
+                </button> */}
               </div>
             ) : (
               <div className="flex items-center gap-4">
@@ -122,12 +122,12 @@ export default function Navbar() {
                 <Link href="/account" onClick={() => setOpen(false)} className="block py-3 text-xs tracking-[0.3em] uppercase border-b border-[rgba(201,169,110,0.08)] text-[#7a7570] hover:text-[#f0ece4] transition-colors">
                   My Account
                 </Link>
-                <button
+                {/* <button
                   onClick={async () => { setOpen(false); await signOut(); router.push("/"); }}
                   className="block w-full text-left py-3 text-xs tracking-[0.3em] uppercase text-[#7a7570] hover:text-[#f0ece4] transition-colors"
                 >
                   Sign Out
-                </button>
+                </button> */}
               </>
             ) : (
               <>
